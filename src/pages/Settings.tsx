@@ -3,7 +3,10 @@ import { Save, Edit2, X, Upload, Building2, MapPin, Phone, Mail, Globe } from 'l
 import { organisationApi } from '@/api/services';
 import type { Organisation } from '@/types';
 
+import { useAuth } from '../context/AuthContext';
+
 export default function Settings() {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -27,7 +30,7 @@ export default function Settings() {
     host_unavailable_message: '',
   });
 
-  const organisationId = 1;
+  const organisationId = user?.organisation_id || 1;
 
   useEffect(() => {
     const fetchOrganisation = async () => {
@@ -90,8 +93,10 @@ export default function Settings() {
         formDataToSend.append('logo', logoFile);
       }
 
+      const token = localStorage.getItem('digi_gate_token') || sessionStorage.getItem('digi_gate_token');
       const res = await fetch(`http://localhost:5000/api/organisations/${organisationId}`, {
         method: 'PUT',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: formDataToSend,
       });
 

@@ -3,7 +3,10 @@ import { Plus, Edit2, Trash2, X, Upload, User } from 'lucide-react';
 import { hostApi } from '@/api/services';
 import type { Host } from '@/types';
 
+import { useAuth } from '../context/AuthContext';
+
 export default function Hosts() {
+  const { user } = useAuth();
   const [hosts, setHosts] = useState<Host[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -22,7 +25,7 @@ export default function Hosts() {
     profile_pic: '',
   });
 
-  const organisationId = 1;
+  const organisationId = user?.organisation_id || 1;
 
   useEffect(() => {
     fetchHosts();

@@ -4,7 +4,10 @@ import VisitorsTable from '@/components/Visitors/VisitorsTable';
 import { visitorApi } from '@/api/services';
 import type { Visitor } from '@/types';
 
+import { useAuth } from '../context/AuthContext';
+
 export default function Visitors() {
+  const { user } = useAuth();
   const [visitors, setVisitors] = useState<Visitor[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -13,7 +16,7 @@ export default function Visitors() {
   const [total, setTotal] = useState(0);
   const limit = 10;
 
-  const organisationId = 1;
+  const organisationId = user?.organisation_id || 1;
 
   useEffect(() => {
     fetchVisitors();

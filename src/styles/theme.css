@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+:root {
+  --primary: #035352;
+  --primary-hover: #023e3d;
+  --primary-light: #05706f;
+
+  --secondary: #F3E8BC;
+  --secondary-hover: #e8da9d;
+
+  --dark-text: #172525;
+  --muted-text: #4a5d5c;
+  --light-bg: #F4F7F6;
+}
+
+body {
+  background-color: var(--light-bg);
+  color: var(--dark-text);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+.bg-grid-pattern {
+  background-size: 30px 30px;
+  background-image:
+    linear-gradient(to right, rgba(243, 232, 188, 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(243, 232, 188, 0.07) 1px, transparent 1px);
+}
+
+/* Hide native browser password reveal eye icon */
+input::-ms-reveal,
+input::-ms-clear,
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+input::-webkit-credentials-auto-fill-button,
+input::-webkit-contacts-auto-fill-button {
+  visibility: hidden !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  right: 0 !important;
+}

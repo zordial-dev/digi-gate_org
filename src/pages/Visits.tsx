@@ -3,7 +3,10 @@ import { ChevronLeft, ChevronRight, Eye, X, User, Building2, Calendar, Clock, Fi
 import { visitApi } from '@/api/services';
 import type { VisitorVisit } from '@/types';
 
+import { useAuth } from '../context/AuthContext';
+
 export default function Visits() {
+  const { user } = useAuth();
   const [visits, setVisits] = useState<VisitorVisit[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -13,7 +16,7 @@ export default function Visits() {
   const [showModal, setShowModal] = useState(false);
   const limit = 10;
 
-  const organisationId = 1;
+  const organisationId = user?.organisation_id || 1;
 
   useEffect(() => {
     fetchVisits();
