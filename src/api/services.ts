@@ -75,6 +75,9 @@ export const hostApi = {
   
   toggleAvailability: (id: number) =>
     apiClient.patch<ApiResponse<Host>>(`/hosts/${id}/toggle-availability`),
+  
+  updateUnavailableDates: (id: number, unavailable_dates: string[]) =>
+    apiClient.patch<ApiResponse<Host>>(`/hosts/${id}/unavailable-dates`, { unavailable_dates }),
 };
 
 // ============================================================

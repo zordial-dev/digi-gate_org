@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, Users } from 'lucide-react';
 import VisitorsTable from '@/components/Visitors/VisitorsTable';
 import { visitorApi } from '@/api/services';
 import type { Visitor } from '@/types';
-
 import { useAuth } from '../context/AuthContext';
 
 export default function Visitors() {
@@ -49,97 +48,56 @@ export default function Visitors() {
   };
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-        <h1 className="text-2xl font-bold" style={{ color: '#06216B' }}>Visitors</h1>
-        <div className="relative">
+    <div className="space-y-6 animate-in fade-in duration-300">
+      {/* Page Header & Search */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-[#035352]/10 text-[#035352] flex items-center justify-center font-bold">
+              <Users className="w-4 h-4" />
+            </div>
+            <h1 className="text-2xl font-black tracking-tight text-[#172525]">Visitors Directory</h1>
+          </div>
+          <p className="text-xs text-slate-500 font-medium mt-1">Comprehensive record of registered visitors for your organisation</p>
+        </div>
+
+        <div className="relative min-w-[260px]">
           <input
             type="text"
             placeholder="Search visitors..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="px-4 py-2 border rounded-xl outline-none transition-all pr-10"
-            style={{
-              borderColor: '#021767',
-              color: '#3F5885',
-              fontWeight: 500,
-              fontSize: '0.95rem',
-              backgroundColor: '#ffffff',
-              minWidth: '250px'
-            }}
-            onFocus={(e) => {
-              e.target.style.borderColor = '#289CD8';
-              e.target.style.boxShadow = '0 0 0 3px rgba(40, 156, 216, 0.2)';
-            }}
-            onBlur={(e) => {
-              e.target.style.borderColor = '#021767';
-              e.target.style.boxShadow = 'none';
-            }}
+            className="w-full px-4 py-2.5 pl-10 bg-white border border-slate-300 rounded-xl outline-none text-xs font-bold text-slate-800 placeholder-slate-400 focus:border-[#035352] focus:ring-2 focus:ring-[#035352]/20 transition-all shadow-sm"
           />
-          <Search className="h-5 w-5 absolute right-3 top-1/2 -translate-y-1/2" style={{ color: '#94a3b8' }} />
+          <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
         </div>
       </div>
 
-      <div 
-        className="rounded-xl overflow-hidden"
-        style={{
-          backgroundColor: '#ffffff',
-          border: '1px solid #021767',
-          boxShadow: '0 4px 16px rgba(2, 29, 91, 0.08)'
-        }}
-      >
+      {/* Main Table Card */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-md shadow-slate-200/50 overflow-hidden">
         <VisitorsTable visitors={visitors} loading={loading} />
 
-        {/* Pagination */}
+        {/* Pagination Footer */}
         {totalPages > 1 && (
-          <div 
-            className="flex items-center justify-between px-4 py-3"
-            style={{ borderTop: '1px solid #021767', backgroundColor: '#f8fafc' }}
-          >
-            <div className="text-sm" style={{ color: '#64748b' }}>
+          <div className="flex items-center justify-between px-5 py-3.5 border-t border-slate-100 bg-slate-50/50">
+            <div className="text-xs font-medium text-slate-500">
               Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, total)} of {total} entries
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => goToPage(page - 1)}
                 disabled={page === 1}
-                className="p-2 border rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{
-                  borderColor: '#021767',
-                  color: '#3F5885',
-                  backgroundColor: '#ffffff'
-                }}
-                onMouseEnter={(e) => {
-                  if (page !== 1) {
-                    e.currentTarget.style.backgroundColor = 'rgba(6, 33, 107, 0.06)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#ffffff';
-                }}
+                className="p-2 rounded-xl border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
-              <span className="px-3 py-1 text-sm font-semibold" style={{ color: '#3F5885' }}>
+              <span className="px-3 py-1 text-xs font-bold text-[#035352]">
                 Page {page} of {totalPages}
               </span>
               <button
                 onClick={() => goToPage(page + 1)}
                 disabled={page === totalPages}
-                className="p-2 border rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{
-                  borderColor: '#021767',
-                  color: '#3F5885',
-                  backgroundColor: '#ffffff'
-                }}
-                onMouseEnter={(e) => {
-                  if (page !== totalPages) {
-                    e.currentTarget.style.backgroundColor = 'rgba(6, 33, 107, 0.06)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#ffffff';
-                }}
+                className="p-2 rounded-xl border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>

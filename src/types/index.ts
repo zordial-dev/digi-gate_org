@@ -29,6 +29,9 @@ export interface Host {
   department: string;
   profile_pic: string;
   is_available: boolean;
+  is_available_toggle?: boolean;
+  is_date_unavailable?: boolean;
+  unavailable_dates?: string[];
   is_active: boolean;
   organisation?: Organisation; // Added optional organisation
 }

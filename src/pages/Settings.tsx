@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Save, Edit2, X, Upload, Building2, MapPin, Phone, Mail, Globe } from 'lucide-react';
+import { Save, Edit2, X, Upload, Building2, MapPin, Phone, Mail, Globe, Settings as SettingsIcon } from 'lucide-react';
 import { organisationApi } from '@/api/services';
 import type { Organisation } from '@/types';
-
 import { useAuth } from '../context/AuthContext';
+import QRCodeSection from '../components/UI/QRCodeSection';
+import MessageVariableBuilder from '../components/UI/MessageVariableBuilder';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -14,6 +15,10 @@ export default function Settings() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+
+  const defaultAvailableMsg = 'Thank you for visiting :visitor_name! :host_name will be with you shortly.';
+  const defaultUnavailableMsg = 'Thank you for your interest :visitor_name. :host_name is currently unavailable.';
+
   const [formData, setFormData] = useState({
     name: '',
     code: '',
@@ -51,8 +56,8 @@ export default function Settings() {
             email: data.email || '',
             website: data.website || '',
             logo_url: data.logo_url || '',
-            host_available_message: data.host_available_message || '',
-            host_unavailable_message: data.host_unavailable_message || '',
+            host_available_message: data.host_available_message || defaultAvailableMsg,
+            host_unavailable_message: data.host_unavailable_message || defaultUnavailableMsg,
           });
         }
       } catch (error) {
@@ -63,7 +68,7 @@ export default function Settings() {
     };
 
     fetchOrganisation();
-  }, []);
+  }, [organisationId]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -132,8 +137,8 @@ export default function Settings() {
         email: organisation.email || '',
         website: organisation.website || '',
         logo_url: organisation.logo_url || '',
-        host_available_message: organisation.host_available_message || '',
-        host_unavailable_message: organisation.host_unavailable_message || '',
+        host_available_message: organisation.host_available_message || defaultAvailableMsg,
+        host_unavailable_message: organisation.host_unavailable_message || defaultUnavailableMsg,
       });
       setLogoPreview(null);
       setLogoFile(null);
@@ -143,23 +148,30 @@ export default function Settings() {
   };
 
   if (loading) {
-    return <div className="text-center py-8" style={{ color: '#64748b' }}>Loading...</div>;
+    return (
+      <div className="min-h-[300px] flex items-center justify-center p-8">
+        <div className="flex flex-col items-center gap-2 text-[#035352]">
+          <div className="w-8 h-8 border-3 border-[#035352] border-t-transparent rounded-full animate-spin" />
+          <p className="text-xs font-bold">Loading Organisation Settings...</p>
+        </div>
+      </div>
+    );
   }
 
   const InfoField = ({ label, value, icon: Icon }: any) => (
-    <div className="py-3" style={{ borderBottom: '1px solid #f1f5f9' }}>
-      <div className="flex items-center gap-2 text-sm mb-1" style={{ color: '#64748b' }}>
-        <Icon className="h-4 w-4" />
+    <div className="py-3 border-b border-slate-100 last:border-b-0">
+      <div className="flex items-center gap-2 text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider">
+        <Icon className="h-3.5 w-3.5 text-[#035352]" />
         {label}
       </div>
-      <div className="font-semibold" style={{ color: '#0f172a' }}>{value || 'Not set'}</div>
+      <div className="font-bold text-xs text-[#172525]">{value || 'Not set'}</div>
     </div>
   );
 
   const EditField = ({ label, name, value, type = 'text', icon: Icon, disabled = false }: any) => (
     <div>
-      <label className="block text-sm font-semibold mb-1.5 flex items-center gap-2" style={{ color: '#3F5885' }}>
-        <Icon className="h-4 w-4" style={{ color: '#94a3b8' }} />
+      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center gap-2">
+        <Icon className="h-3.5 w-3.5 text-[#035352]" />
         {label}
       </label>
       <input
@@ -168,71 +180,40 @@ export default function Settings() {
         value={value}
         onChange={handleChange}
         disabled={disabled}
-        className={`w-full px-4 py-2.5 border rounded-xl outline-none transition-all ${
-          disabled ? 'bg-gray-100 cursor-not-allowed' : ''
+        className={`w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl outline-none text-xs font-bold text-slate-800 placeholder-slate-400 focus:border-[#035352] focus:ring-2 focus:ring-[#035352]/20 transition-all shadow-sm ${
+          disabled ? 'bg-slate-100 text-slate-500 cursor-not-allowed border-slate-200' : ''
         }`}
-        style={{
-          borderColor: '#021767',
-          color: '#3F5885',
-          fontWeight: 500,
-          fontSize: '0.95rem',
-          backgroundColor: disabled ? '#f8fafc' : '#ffffff'
-        }}
-        onFocus={(e) => {
-          if (!disabled) {
-            e.target.style.borderColor = '#289CD8';
-            e.target.style.boxShadow = '0 0 0 3px rgba(40, 156, 216, 0.2)';
-          }
-        }}
-        onBlur={(e) => {
-          if (!disabled) {
-            e.target.style.borderColor = '#021767';
-            e.target.style.boxShadow = 'none';
-          }
-        }}
       />
     </div>
   );
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold" style={{ color: '#06216B' }}>Settings</h1>
+    <div className="space-y-6 animate-in fade-in duration-300">
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-[#035352]/10 text-[#035352] flex items-center justify-center font-bold">
+              <SettingsIcon className="w-4 h-4" />
+            </div>
+            <h1 className="text-2xl font-black tracking-tight text-[#172525]">Organisation Settings</h1>
+          </div>
+          <p className="text-xs text-slate-500 font-medium mt-1">Configure organisation details, logo branding, and gate messaging</p>
+        </div>
+
         {!editMode ? (
           <button
             onClick={() => setEditMode(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-white transition-all"
-            style={{
-              background: 'linear-gradient(135deg, #153D9F 0%, #06216B 100%)',
-              boxShadow: '0 6px 18px rgba(2, 29, 91, 0.2)',
-              border: '1px solid #021767'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'linear-gradient(135deg, #06216B 0%, #021D5B 100%)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'linear-gradient(135deg, #153D9F 0%, #06216B 100%)';
-            }}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#035352] hover:bg-[#023e3d] shadow-md shadow-[#035352]/20 transition-all"
           >
             <Edit2 className="h-4 w-4" />
-            Edit
+            Edit Profile
           </button>
         ) : (
           <div className="flex gap-3">
             <button
               onClick={cancelEdit}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition-all"
-              style={{
-                border: '1px solid #021767',
-                color: '#3F5885',
-                backgroundColor: '#ffffff'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(6, 33, 107, 0.06)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#ffffff';
-              }}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 transition-all shadow-sm"
             >
               <X className="h-4 w-4" />
               Cancel
@@ -240,184 +221,147 @@ export default function Settings() {
             <button
               onClick={handleSubmit}
               disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-white transition-all disabled:opacity-50"
-              style={{
-                background: 'linear-gradient(135deg, #153D9F 0%, #06216B 100%)',
-                boxShadow: '0 6px 18px rgba(2, 29, 91, 0.2)',
-                border: '1px solid #021767'
-              }}
-              onMouseEnter={(e) => {
-                if (!saving) {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, #06216B 0%, #021D5B 100%)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!saving) {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, #153D9F 0%, #06216B 100%)';
-                }
-              }}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#035352] hover:bg-[#023e3d] shadow-md shadow-[#035352]/20 transition-all disabled:opacity-50"
             >
               <Save className="h-4 w-4" />
-              {saving ? 'Saving...' : 'Save'}
+              {saving ? 'Saving...' : 'Save Settings'}
             </button>
           </div>
         )}
       </div>
 
+      {/* Message Banner */}
       {message && (
         <div 
-          className={`mb-4 p-3 rounded-lg border ${
+          className={`p-3.5 rounded-2xl border text-xs font-bold shadow-sm ${
             message.type === 'success' 
-              ? 'bg-green-50 text-green-700 border-green-200' 
-              : 'bg-red-50 text-red-700 border-red-200'
+              ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
+              : 'bg-rose-50 text-rose-800 border-rose-200'
           }`}
         >
           {message.text}
         </div>
       )}
 
-      <div 
-        className="rounded-xl p-6"
-        style={{
-          backgroundColor: '#ffffff',
-          border: '1px solid #021767',
-          boxShadow: '0 4px 16px rgba(2, 29, 91, 0.08)'
-        }}
-      >
-        {/* Logo */}
-        <div className="flex items-center gap-4 mb-6">
-          <div 
-            className="w-20 h-20 overflow-hidden rounded-lg flex items-center justify-center"
-            style={{ backgroundColor: '#f8fafc', border: '1px solid #021767' }}
-          >
+      {/* QR Code Section */}
+      <QRCodeSection
+        orgId={organisationId}
+        orgName={formData.name || 'Organisation'}
+        orgCode={formData.code}
+        logoUrl={formData.logo_url}
+      />
+
+      {/* Main Settings Card */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-md shadow-slate-200/50 p-6 sm:p-8 space-y-6">
+        {/* Logo Section */}
+        <div className="flex items-center gap-5 border-b border-slate-100 pb-6">
+          <div className="w-20 h-20 overflow-hidden rounded-2xl border-2 border-[#035352]/30 bg-slate-50 flex items-center justify-center shrink-0 shadow-inner">
             {logoPreview ? (
-              <img src={logoPreview} alt="Logo preview" className="w-full h-full object-contain" />
+              <img src={logoPreview} alt="Logo preview" className="w-full h-full object-contain p-1" />
             ) : formData.logo_url ? (
-              <img src={formData.logo_url} alt="Logo" className="w-full h-full object-contain" />
+              <img src={formData.logo_url} alt="Logo" className="w-full h-full object-contain p-1" />
             ) : (
-              <Building2 className="h-10 w-10" style={{ color: '#94a3b8' }} />
+              <Building2 className="h-10 w-10 text-slate-300" />
             )}
           </div>
-          {editMode && (
+          {editMode ? (
             <div>
-              <label 
-                className="cursor-pointer px-4 py-2 rounded-xl font-semibold transition-all"
-                style={{
-                  border: '1px solid #021767',
-                  color: '#3F5885',
-                  backgroundColor: '#ffffff'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(6, 33, 107, 0.06)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#ffffff';
-                }}
-              >
-                <Upload className="h-4 w-4 inline mr-2" />
-                Upload Logo
+              <label className="cursor-pointer px-4 py-2.5 rounded-xl font-bold text-xs bg-[#035352]/10 text-[#035352] border border-[#035352]/20 hover:bg-[#035352]/20 transition-all inline-flex items-center gap-2">
+                <Upload className="h-4 w-4" />
+                <span>Upload Logo Image</span>
                 <input type="file" accept="image/*" onChange={handleLogoChange} className="hidden" />
               </label>
-              <p className="text-xs mt-1" style={{ color: '#94a3b8' }}>PNG, JPG up to 2MB</p>
+              <p className="text-[11px] font-semibold text-slate-400 mt-1">PNG, JPG formats supported</p>
             </div>
-          )}
-          {!editMode && formData.logo_url && (
-            <p className="text-sm" style={{ color: '#64748b' }}>Logo uploaded</p>
+          ) : (
+            <div>
+              <p className="text-sm font-bold text-[#172525]">{formData.name || 'Organisation Logo'}</p>
+              <p className="text-xs text-slate-400 font-medium">Branding logo displayed on visitor gate pass</p>
+            </div>
           )}
         </div>
 
         {!editMode ? (
-          // View Mode
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          /* View Mode Grid */
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
             <InfoField label="Organisation Name" value={formData.name} icon={Building2} />
-            <InfoField label="Code" value={formData.code} icon={Building2} />
-            <InfoField label="Address" value={formData.address} icon={MapPin} />
+            <InfoField label="Organisation Code" value={formData.code} icon={Building2} />
+            <InfoField label="Street Address" value={formData.address} icon={MapPin} />
             <InfoField label="City" value={formData.city} icon={MapPin} />
             <InfoField label="State" value={formData.state} icon={MapPin} />
             <InfoField label="Country" value={formData.country} icon={MapPin} />
             <InfoField label="Pincode" value={formData.pincode} icon={MapPin} />
-            <InfoField label="Phone" value={formData.phone} icon={Phone} />
-            <InfoField label="Email" value={formData.email} icon={Mail} />
-            <InfoField label="Website" value={formData.website} icon={Globe} />
-            <div className="md:col-span-2">
-              <div className="py-3" style={{ borderBottom: '1px solid #f1f5f9' }}>
-                <div className="text-sm mb-1" style={{ color: '#64748b' }}>Host Available Message</div>
-                <div className="font-semibold" style={{ color: '#0f172a' }}>{formData.host_available_message || 'Not set'}</div>
-              </div>
-            </div>
-            <div className="md:col-span-2">
-              <div className="py-3">
-                <div className="text-sm mb-1" style={{ color: '#64748b' }}>Host Unavailable Message</div>
-                <div className="font-semibold" style={{ color: '#0f172a' }}>{formData.host_unavailable_message || 'Not set'}</div>
-              </div>
+            <InfoField label="Phone Contact" value={formData.phone} icon={Phone} />
+            <InfoField label="Email Address" value={formData.email} icon={Mail} />
+            <InfoField label="Website URL" value={formData.website} icon={Globe} />
+
+            {/* Interactive Custom Messages in View Mode */}
+            <div className="md:col-span-2 pt-4 border-t border-slate-100 space-y-4">
+              <MessageVariableBuilder
+                label="Host Available Confirmation Message"
+                name="host_available_message"
+                value={formData.host_available_message}
+                onChange={handleChange}
+                onValueChange={(val) => setFormData((prev) => ({ ...prev, host_available_message: val }))}
+                defaultMessage={defaultAvailableMsg}
+                disabled={true}
+              />
+
+              <MessageVariableBuilder
+                label="Host Unavailable Notification Message"
+                name="host_unavailable_message"
+                value={formData.host_unavailable_message}
+                onChange={handleChange}
+                onValueChange={(val) => setFormData((prev) => ({ ...prev, host_unavailable_message: val }))}
+                defaultMessage={defaultUnavailableMsg}
+                disabled={true}
+              />
             </div>
           </div>
         ) : (
-          // Edit Mode
-          <form onSubmit={handleSubmit} className="space-y-4">
+          /* Edit Mode Form */
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <EditField label="Organisation Name" name="name" value={formData.name} icon={Building2} />
               <EditField label="Code" name="code" value={formData.code} icon={Building2} disabled />
-              <EditField label="Address" name="address" value={formData.address} icon={MapPin} />
+              <EditField label="Street Address" name="address" value={formData.address} icon={MapPin} />
               <EditField label="City" name="city" value={formData.city} icon={MapPin} />
               <EditField label="State" name="state" value={formData.state} icon={MapPin} />
               <EditField label="Country" name="country" value={formData.country} icon={MapPin} />
               <EditField label="Pincode" name="pincode" value={formData.pincode} icon={MapPin} />
-              <EditField label="Phone" name="phone" value={formData.phone} icon={Phone} />
-              <EditField label="Email" name="email" value={formData.email} icon={Mail} />
-              <EditField label="Website" name="website" value={formData.website} icon={Globe} />
+              <EditField label="Phone Contact" name="phone" value={formData.phone} icon={Phone} />
+              <EditField label="Email Address" name="email" value={formData.email} icon={Mail} />
+              <EditField label="Website URL" name="website" value={formData.website} icon={Globe} />
             </div>
-            <div>
-              <label className="block text-sm font-semibold mb-1.5" style={{ color: '#3F5885' }}>Host Available Message</label>
-              <textarea
+
+            {/* No-Code Interactive Message Variable Builders */}
+            <div className="pt-4 border-t border-slate-100 space-y-6">
+              <div>
+                <h3 className="text-sm font-black text-[#172525] mb-1">Custom Gate Confirmation Messaging</h3>
+                <p className="text-xs text-slate-500 font-medium mb-4">
+                  Design custom clearance responses for your visitors. Use the interactive variable buttons below to insert visitor & host names automatically.
+                </p>
+              </div>
+
+              <MessageVariableBuilder
+                label="Host Available Confirmation Message"
                 name="host_available_message"
                 value={formData.host_available_message}
                 onChange={handleChange}
-                rows={2}
-                className="w-full px-4 py-2.5 border rounded-xl outline-none transition-all resize-none"
-                style={{
-                  borderColor: '#021767',
-                  color: '#3F5885',
-                  fontWeight: 500,
-                  fontSize: '0.95rem',
-                  backgroundColor: '#ffffff'
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#289CD8';
-                  e.target.style.boxShadow = '0 0 0 3px rgba(40, 156, 216, 0.2)';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = '#021767';
-                  e.target.style.boxShadow = 'none';
-                }}
+                onValueChange={(val) => setFormData((prev) => ({ ...prev, host_available_message: val }))}
+                defaultMessage={defaultAvailableMsg}
+                disabled={false}
               />
-              <p className="text-xs mt-1" style={{ color: '#94a3b8' }}>Use {'{visitor_name}'} and {'{host_name}'} as placeholders</p>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold mb-1.5" style={{ color: '#3F5885' }}>Host Unavailable Message</label>
-              <textarea
+
+              <MessageVariableBuilder
+                label="Host Unavailable Notification Message"
                 name="host_unavailable_message"
                 value={formData.host_unavailable_message}
                 onChange={handleChange}
-                rows={2}
-                className="w-full px-4 py-2.5 border rounded-xl outline-none transition-all resize-none"
-                style={{
-                  borderColor: '#021767',
-                  color: '#3F5885',
-                  fontWeight: 500,
-                  fontSize: '0.95rem',
-                  backgroundColor: '#ffffff'
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#289CD8';
-                  e.target.style.boxShadow = '0 0 0 3px rgba(40, 156, 216, 0.2)';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = '#021767';
-                  e.target.style.boxShadow = 'none';
-                }}
+                onValueChange={(val) => setFormData((prev) => ({ ...prev, host_unavailable_message: val }))}
+                defaultMessage={defaultUnavailableMsg}
+                disabled={false}
               />
-              <p className="text-xs mt-1" style={{ color: '#94a3b8' }}>Use {'{visitor_name}'} and {'{host_name}'} as placeholders</p>
             </div>
           </form>
         )}
