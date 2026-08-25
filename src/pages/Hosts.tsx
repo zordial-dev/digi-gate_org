@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, X, Upload, User, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Upload, User, Calendar, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { hostApi } from '@/api/services';
 import type { Host } from '@/types';
 
