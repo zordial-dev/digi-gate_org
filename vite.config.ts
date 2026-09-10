@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 
 export default defineConfig({
+  envPrefix: ['VITE_', 'API_'],
   plugins: [react()],
   resolve: {
     alias: {
@@ -12,31 +13,31 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'https://digi-gate-backend.onrender.com',
         changeOrigin: true,
       },
       '/public': {
-        target: 'http://localhost:5000',
+        target: 'https://digi-gate-backend.onrender.com',
         changeOrigin: true,
       },
       '/selfies': {
-        target: 'http://localhost:5000',
+        target: 'https://digi-gate-backend.onrender.com',
         changeOrigin: true,
       },
       '/logos': {
-        target: 'http://localhost:5000',
+        target: 'https://digi-gate-backend.onrender.com',
         changeOrigin: true,
       },
       '/hosts': {
-        target: 'http://localhost:5000',
+        target: 'https://digi-gate-backend.onrender.com',
         changeOrigin: true,
       },
       '/profiles': {
-        target: 'http://localhost:5000',
+        target: 'https://digi-gate-backend.onrender.com',
         changeOrigin: true,
       },
       '/uploads': {
-        target: 'http://localhost:5000',
+        target: 'https://digi-gate-backend.onrender.com',
         changeOrigin: true,
       },
     },

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = (import.meta as unknown as { env?: { API_URL?: string } }).env?.API_URL;
+const API_URL = (import.meta as unknown as { env?: { API_URL?: string } }).env?.API_URL || 'https://digi-gate-backend.onrender.com/api';
 
 const apiClient = axios.create({
   baseURL: API_URL,
