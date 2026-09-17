@@ -98,14 +98,8 @@ export default function Settings() {
         formDataToSend.append('logo', logoFile);
       }
 
-      const token = localStorage.getItem('digi_gate_token') || sessionStorage.getItem('digi_gate_token');
-      const res = await fetch(`http://localhost:5000/api/organisations/${organisationId}`, {
-        method: 'PUT',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: formDataToSend,
-      });
-
-      const result = await res.json();
+      const res = await organisationApi.update(organisationId, formDataToSend);
+      const result = res.data;
 
       if (result.success) {
         setMessage({ type: 'success', text: 'Settings updated successfully!' });
