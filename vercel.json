@@ -5,6 +5,30 @@
       "destination": "https://digi-gate-backend.onrender.com/api/$1"
     },
     {
+      "source": "/public/(.*)",
+      "destination": "https://digi-gate-backend.onrender.com/public/$1"
+    },
+    {
+      "source": "/selfies/(.*)",
+      "destination": "https://digi-gate-backend.onrender.com/selfies/$1"
+    },
+    {
+      "source": "/logos/(.*)",
+      "destination": "https://digi-gate-backend.onrender.com/logos/$1"
+    },
+    {
+      "source": "/hosts/(.*)",
+      "destination": "https://digi-gate-backend.onrender.com/hosts/$1"
+    },
+    {
+      "source": "/profiles/(.*)",
+      "destination": "https://digi-gate-backend.onrender.com/profiles/$1"
+    },
+    {
+      "source": "/uploads/(.*)",
+      "destination": "https://digi-gate-backend.onrender.com/uploads/$1"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
