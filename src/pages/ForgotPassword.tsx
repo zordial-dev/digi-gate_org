@@ -15,7 +15,6 @@ export const ForgotPassword: React.FC = () => {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSent, setIsSent] = useState(false);
-  const [devOtpHint, setDevOtpHint] = useState('');
 
   // Reset Password State
   const [otpCode, setOtpCode] = useState('');
@@ -36,9 +35,8 @@ export const ForgotPassword: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const res = await forgotPassword(email);
+      await forgotPassword(email);
       setIsSent(true);
-      if (res.devOtp) setDevOtpHint(res.devOtp);
       showToast('Reset OTP Sent', 'OTP instructions have been emailed to your address.', 'success');
     } catch (err: any) {
       const msg = err.response?.data?.error || err.message || 'Failed to send reset OTP.';
@@ -53,8 +51,8 @@ export const ForgotPassword: React.FC = () => {
     e.preventDefault();
     setError('');
 
-    if (!otpCode || otpCode.length < 4) {
-      setError('Please enter the OTP code sent to your email.');
+    if (!otpCode || otpCode.trim() !== '1234') {
+      setError('Please enter the static OTP code 1234.');
       return;
     }
     if (!newPassword || newPassword.length < 6) {
@@ -89,23 +87,16 @@ export const ForgotPassword: React.FC = () => {
         <form onSubmit={handleResetPasswordSubmit} className="flex flex-col gap-4 animate-in zoom-in-95 duration-200">
           <div className="flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs">
             <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-            <span>OTP sent to <strong>{email}</strong></span>
+            <span>Static OTP 1234 sent to <strong>{email}</strong></span>
           </div>
-
-          {devOtpHint && (
-            <div className="p-3 bg-[#F3E8BC]/30 border border-[#F3E8BC] rounded-xl text-xs text-[#172525] font-mono flex items-center justify-between">
-              <span>Dev OTP Code:</span>
-              <strong className="text-[#035352] font-bold text-sm tracking-wider">{devOtpHint}</strong>
-            </div>
-          )}
 
           {error && <p className="text-xs font-semibold text-rose-600">{error}</p>}
 
           <Input
-            label="Enter 6-Digit OTP"
+            label="Enter 4-Digit OTP"
             type="text"
-            placeholder="123456"
-            maxLength={6}
+            placeholder="1234"
+            maxLength={4}
             value={otpCode}
             onChange={(e) => setOtpCode(e.target.value)}
             leftIcon={<KeyRound className="w-4 h-4 text-slate-400" />}

@@ -31,7 +31,6 @@ export const Register: React.FC = () => {
   const [otpCode, setOtpCode] = useState('');
   const [registeredEmail, setRegisteredEmail] = useState('');
   const [otpLoading, setOtpLoading] = useState(false);
-  const [devOtpHint, setDevOtpHint] = useState('');
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
@@ -82,8 +81,7 @@ export const Register: React.FC = () => {
         role: 'organisation'
       });
       setRegisteredEmail(res.email || email);
-      if (res.devOtp) setDevOtpHint(res.devOtp);
-      showToast('OTP Dispatched', `A 6-digit OTP code has been sent to ${res.email || email}.`, 'info');
+      showToast('OTP Dispatched', `A static 4-digit OTP code (1234) has been sent to ${res.email || email}.`, 'info');
       setShowOtpModal(true);
     } catch (err: any) {
       const msg = err.response?.data?.error || err.message || 'Organisation registration failed.';
@@ -95,8 +93,8 @@ export const Register: React.FC = () => {
 
   const handleVerifyOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!otpCode || otpCode.length < 4) {
-      showToast('OTP Required', 'Please enter the valid 6-digit OTP code sent to your email.', 'error');
+    if (!otpCode || otpCode.trim() !== '1234') {
+      showToast('OTP Required', 'Please enter the static OTP code 1234.', 'error');
       return;
     }
 
@@ -281,21 +279,14 @@ export const Register: React.FC = () => {
       >
         <form onSubmit={handleVerifyOtpSubmit} className="space-y-4 my-2">
           <p className="text-xs text-slate-600">
-            Please enter the 6-digit OTP code sent to <strong className="text-[#035352]">{registeredEmail}</strong>.
+            Please enter the 4-digit static OTP code (<strong className="text-[#035352]">1234</strong>) sent to <strong className="text-[#035352]">{registeredEmail}</strong>.
           </p>
 
-          {devOtpHint && (
-            <div className="p-3 bg-[#F3E8BC]/30 border border-[#F3E8BC] rounded-xl text-xs text-[#172525] font-mono flex items-center justify-between">
-              <span>Dev OTP Code:</span>
-              <strong className="text-[#035352] font-bold text-sm tracking-wider">{devOtpHint}</strong>
-            </div>
-          )}
-
           <Input
-            label="Enter 6-Digit OTP"
+            label="Enter 4-Digit OTP"
             type="text"
-            placeholder="123456"
-            maxLength={6}
+            placeholder="1234"
+            maxLength={4}
             value={otpCode}
             onChange={(e) => setOtpCode(e.target.value)}
             leftIcon={<KeyRound className="w-4 h-4 text-slate-400" />}
