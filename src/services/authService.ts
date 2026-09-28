@@ -175,4 +175,17 @@ export const authService = {
     sessionStorage.removeItem(TOKEN_KEY);
     sessionStorage.removeItem(USER_KEY);
   },
+
+  changePassword: async (currentPassword: string, newPassword: string): Promise<boolean> => {
+    const response = await apiClient.post('/auth/change-password', {
+      current_password: currentPassword,
+      new_password: newPassword
+    });
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Failed to change password.');
+    }
+
+    return true;
+  },
 };
