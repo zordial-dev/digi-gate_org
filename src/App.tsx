@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -9,10 +9,19 @@ import Dashboard from '@/pages/Dashboard';
 import Visitors from '@/pages/Visitors';
 import Visits from '@/pages/Visits';
 import Hosts from '@/pages/Hosts';
+import ManageAdmins from '@/pages/ManageAdmins';
 import Settings from '@/pages/Settings';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  if (user?.org_user_role === 'sub_admin') {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+}
 
 function App() {
   return (
@@ -40,6 +49,14 @@ function App() {
                           <Route path="/visitors" element={<Visitors />} />
                           <Route path="/visits" element={<Visits />} />
                           <Route path="/hosts" element={<Hosts />} />
+                          <Route
+                            path="/admins"
+                            element={
+                              <AdminRoute>
+                                <ManageAdmins />
+                              </AdminRoute>
+                            }
+                          />
                           <Route path="/settings" element={<Settings />} />
                           <Route path="*" element={<Navigate to="/" replace />} />
                         </Routes>

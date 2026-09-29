@@ -5,7 +5,8 @@ import type {
   Visitor, 
   VisitorVisit, 
   DashboardStats,
-  ApiResponse 
+  ApiResponse,
+  OrganisationUserItem
 } from '@/types';
 
 // ============================================================
@@ -181,13 +182,34 @@ export const reportsApi = {
 };
 
 // ============================================================
+// Organisation Users API (Manage Admins)
+// ============================================================
+export const organisationUserApi = {
+  getAll: () =>
+    apiClient.get<ApiResponse<OrganisationUserItem[]>>('/organisation/users'),
+
+  getById: (id: number) =>
+    apiClient.get<ApiResponse<OrganisationUserItem>>(`/organisation/users/${id}`),
+
+  create: (data: { email: string; password: string; role: 'admin' | 'sub_admin' }) =>
+    apiClient.post<ApiResponse<OrganisationUserItem>>('/organisation/users', data),
+
+  update: (id: number, data: { role?: 'admin' | 'sub_admin'; is_active?: boolean }) =>
+    apiClient.put<ApiResponse<OrganisationUserItem>>(`/organisation/users/${id}`, data),
+
+  delete: (id: number) =>
+    apiClient.delete<ApiResponse<{ message: string }>>(`/organisation/users/${id}`),
+};
+
+// ============================================================
 // Export all APIs
 // ============================================================
 export default {
   organisationApi,
+  organisationUserApi,
   hostApi,
   visitorApi,
   visitApi,
   dashboardApi,
   reportsApi,
-};
+};

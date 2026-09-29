@@ -3,7 +3,6 @@ import { useAuth } from '../../context/AuthContext';
 
 export default function Header() {
   const { user } = useAuth();
-  const displayName = user?.full_name || user?.username || 'Organisation Admin';
   const orgName = user?.organisationName || 'Organisation Portal';
 
   return (
@@ -13,10 +12,6 @@ export default function Header() {
           <Building2 className="w-3.5 h-3.5 text-[#035352]" />
           <span>{orgName}</span>
         </div>
-        <span className="text-slate-300">|</span>
-        <p className="text-xs font-semibold text-slate-500">
-          Logged in as <span className="text-[#172525] font-bold">{displayName}</span>
-        </p>
       </div>
 
       <div className="flex items-center gap-3">
@@ -24,7 +19,7 @@ export default function Header() {
           <Sparkles className="w-3.5 h-3.5" />
           Live Gate Clearance
         </span>
-        <button 
+        <button
           className="p-2 rounded-xl text-slate-400 hover:text-[#035352] hover:bg-slate-100 transition-all relative"
           title="Notifications"
         >

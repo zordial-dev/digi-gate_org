@@ -1,43 +1,43 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import path from 'path';
+import { fileURLToPath, URL } from 'url';
 
 export default defineConfig({
-  envPrefix: ['VITE_', 'API_'],
+  envPrefix: ['VITE_', 'API_', 'USER_'],
   plugins: [react()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
   server: {
     proxy: {
       '/api': {
-        target: 'https://digi-gate-backend.onrender.com',
+        target: 'http://localhost:5000',
         changeOrigin: true,
       },
       '/public': {
-        target: 'https://digi-gate-backend.onrender.com',
+        target: 'http://localhost:5000',
         changeOrigin: true,
       },
       '/selfies': {
-        target: 'https://digi-gate-backend.onrender.com',
+        target: 'http://localhost:5000',
         changeOrigin: true,
       },
       '/logos': {
-        target: 'https://digi-gate-backend.onrender.com',
+        target: 'http://localhost:5000',
         changeOrigin: true,
       },
       '/hosts': {
-        target: 'https://digi-gate-backend.onrender.com',
+        target: 'http://localhost:5000',
         changeOrigin: true,
       },
       '/profiles': {
-        target: 'https://digi-gate-backend.onrender.com',
+        target: 'http://localhost:5000',
         changeOrigin: true,
       },
       '/uploads': {
-        target: 'https://digi-gate-backend.onrender.com',
+        target: 'http://localhost:5000',
         changeOrigin: true,
       },
     },

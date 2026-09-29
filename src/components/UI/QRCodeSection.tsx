@@ -14,9 +14,10 @@ export default function QRCodeSection({ orgId, orgName, orgCode, logoUrl }: QRCo
   const [showPrintModal, setShowPrintModal] = useState(false);
   const qrCanvasRef = useRef<HTMLDivElement>(null);
 
-  // Compute Visitor Registration Form Link
-  const visitorHost = typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname}:5174` : 'http://localhost:5174';
-  const registrationUrl = `${visitorHost}/visitor/form/${orgId}`;
+  // Read User Panel base URL directly from environment variable USER_PANEL_BASE_URL
+  const userPanelBaseUrl = (import.meta as any).env?.USER_PANEL_BASE_URL || '';
+  const orgIdentifier = orgCode?.trim() || orgId;
+  const registrationUrl = userPanelBaseUrl ? `${userPanelBaseUrl.replace(/\/+$/, '')}/visitor/form/${orgIdentifier}` : '';
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(registrationUrl);
@@ -104,7 +105,7 @@ export default function QRCodeSection({ orgId, orgName, orgCode, logoUrl }: QRCo
         <div className="md:col-span-5 flex flex-col items-center justify-center p-6 bg-slate-50 rounded-2xl border border-slate-200/80 relative group">
           <div ref={qrCanvasRef} className="p-4 bg-white rounded-2xl border border-slate-200 shadow-md shadow-slate-200/60">
             <QRCodeCanvas
-              value={registrationUrl}
+              value={registrationUrl || ' '}
               size={180}
               level="H"
               includeMargin={true}
@@ -112,7 +113,7 @@ export default function QRCodeSection({ orgId, orgName, orgCode, logoUrl }: QRCo
           </div>
           {/* Hidden SVG version for vector display if needed */}
           <div className="hidden">
-            <QRCodeSVG value={registrationUrl} size={180} level="H" />
+            <QRCodeSVG value={registrationUrl || ' '} size={180} level="H" />
           </div>
 
           <p className="text-xs font-extrabold text-[#035352] mt-3 tracking-wide uppercase">
@@ -204,7 +205,7 @@ export default function QRCodeSection({ orgId, orgName, orgCode, logoUrl }: QRCo
               </div>
 
               <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-md inline-block my-2">
-                <QRCodeSVG value={registrationUrl} size={220} level="H" />
+                <QRCodeSVG value={registrationUrl || ' '} size={220} level="H" />
               </div>
 
               <div>

@@ -104,3 +104,11 @@ export interface ApiResponse<T = any> {
   error?: string;
   message?: string;
 }
+
+export interface OrganisationUserItem {
+  id: number;
+  organisation_id: number;
+  email: string;
+  role: 'super_admin' | 'admin' | 'sub_admin';
+  is_active: boolean;
+}

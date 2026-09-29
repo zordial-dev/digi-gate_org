@@ -8,6 +8,7 @@ export interface User {
   email: string;
   phone?: string;
   role: string;
+  org_user_role?: 'super_admin' | 'admin' | 'sub_admin' | string;
   organisation_id?: number | null;
   organisationName?: string;
   avatar?: string;
@@ -67,7 +68,8 @@ export const authService = {
       full_name: user.full_name,
       email: user.email,
       username: user.username,
-      role: user.role || 'Organisation Admin',
+      role: user.org_user_role || user.role || 'admin',
+      org_user_role: user.org_user_role || user.role || 'admin',
       organisation_id: user.organisation_id,
       organisationName: user.organisation_name || 'Organisation',
       avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=256'
@@ -128,7 +130,8 @@ export const authService = {
       full_name: user.full_name,
       email: user.email,
       username: user.username,
-      role: user.role || 'Organisation Admin',
+      role: user.org_user_role || user.role || 'admin',
+      org_user_role: user.org_user_role || user.role || 'admin',
       organisation_id: user.organisation_id,
       avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=256'
     };
