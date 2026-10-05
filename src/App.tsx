@@ -12,7 +12,6 @@ import Hosts from '@/pages/Hosts';
 import ManageAdmins from '@/pages/ManageAdmins';
 import Settings from '@/pages/Settings';
 import Login from '@/pages/Login';
-import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
@@ -31,7 +30,7 @@ function App() {
           <Routes>
             {/* Public Auth Routes */}
             <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+            <Route path="/register" element={<Navigate to="/login" replace />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
 
             {/* Protected Organisation Routes */}

@@ -124,13 +124,6 @@ export const Login: React.FC = () => {
         >
           Sign In to Organisation
         </Button>
-
-        <div className="text-center mt-6 pt-6 border-t border-slate-100 text-xs text-slate-500">
-          Don't have an account?{' '}
-          <Link to="/register" className="font-bold text-[#035352] hover:underline">
-            Register Organisation
-          </Link>
-        </div>
       </form>
     </AuthLayout>
   );

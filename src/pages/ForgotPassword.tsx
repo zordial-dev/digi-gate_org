@@ -51,8 +51,8 @@ export const ForgotPassword: React.FC = () => {
     e.preventDefault();
     setError('');
 
-    if (!otpCode || otpCode.trim() !== '1234') {
-      setError('Please enter the static OTP code 1234.');
+    if (!otpCode || !otpCode.trim()) {
+      setError('Please enter the OTP code sent to your email.');
       return;
     }
     if (!newPassword || newPassword.length < 6) {
@@ -66,7 +66,7 @@ export const ForgotPassword: React.FC = () => {
 
     setResetLoading(true);
     try {
-      await resetPassword(email, otpCode, newPassword);
+      await resetPassword(email, otpCode.trim(), newPassword);
       showToast('Password Reset Complete', 'Password reset successfully! Please sign in with your new password.', 'success');
       navigate('/login');
     } catch (err: any) {
@@ -87,18 +87,18 @@ export const ForgotPassword: React.FC = () => {
         <form onSubmit={handleResetPasswordSubmit} className="flex flex-col gap-4 animate-in zoom-in-95 duration-200">
           <div className="flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs">
             <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-            <span>Static OTP 1234 sent to <strong>{email}</strong></span>
+            <span>A One-Time Password (OTP) has been sent to <strong>{email}</strong></span>
           </div>
 
           {error && <p className="text-xs font-semibold text-rose-600">{error}</p>}
 
           <Input
-            label="Enter 4-Digit OTP"
+            label="Enter Verification OTP"
             type="text"
-            placeholder="1234"
-            maxLength={4}
+            placeholder="••••••"
+            maxLength={6}
             value={otpCode}
-            onChange={(e) => setOtpCode(e.target.value)}
+            onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
             leftIcon={<KeyRound className="w-4 h-4 text-slate-400" />}
           />
 

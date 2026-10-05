@@ -11,6 +11,7 @@ interface AuthContextType {
   forgotPassword: (email: string) => Promise<{ success: boolean; email: string; devOtp?: string }>;
   resetPassword: (email: string, otp: string, newPassword?: string) => Promise<boolean>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,10 +20,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  const refreshUser = async () => {
+    const updated = await authService.getProfile();
+    if (updated) {
+      setUser(updated);
+    }
+  };
+
   useEffect(() => {
     const currentUser = authService.getCurrentUser();
     if (currentUser) {
       setUser(currentUser);
+      // Fetch latest profile in background to keep approval status in sync
+      authService.getProfile().then((fresh) => {
+        if (fresh) setUser(fresh);
+      });
     }
     setIsLoading(false);
   }, []);
@@ -79,6 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         forgotPassword,
         resetPassword,
         logout,
+        refreshUser,
       }}
     >
       {children}

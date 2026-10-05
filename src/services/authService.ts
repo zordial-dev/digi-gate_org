@@ -12,6 +12,22 @@ export interface User {
   organisation_id?: number | null;
   organisationName?: string;
   avatar?: string;
+  is_active?: boolean;
+  is_approved?: number;
+  block_reason?: string | null;
+  organisation?: {
+    id: number;
+    name: string;
+    code?: string;
+    is_active: boolean;
+    is_approved: number;
+    block_reason?: string | null;
+    email?: string;
+    phone?: string;
+    address?: string;
+    city?: string;
+    logo_url?: string;
+  } | null;
 }
 
 export interface LoginCredentials {
@@ -51,6 +67,36 @@ export const authService = {
     return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
   },
 
+  getProfile: async (): Promise<User | null> => {
+    try {
+      const response = await apiClient.get('/auth/me');
+      if (response.data.success && response.data.user) {
+        const u = response.data.user;
+        const mappedUser: User = {
+          id: u.id,
+          fullName: u.full_name || u.username,
+          full_name: u.full_name,
+          email: u.email,
+          username: u.username,
+          role: u.org_user_role || u.role || 'admin',
+          org_user_role: u.org_user_role || u.role || 'admin',
+          organisation_id: u.organisation_id,
+          organisationName: u.organisation_name || u.organisation?.name || 'Organisation',
+          is_active: u.is_active ?? u.organisation?.is_active ?? false,
+          is_approved: u.is_approved ?? u.organisation?.is_approved ?? 0,
+          block_reason: u.block_reason || u.organisation?.block_reason || null,
+          organisation: u.organisation || null,
+          avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=256'
+        };
+        localStorage.setItem(USER_KEY, JSON.stringify(mappedUser));
+        return mappedUser;
+      }
+    } catch (e) {
+      console.warn('Failed to refresh profile:', e);
+    }
+    return null;
+  },
+
   login: async (credentials: LoginCredentials): Promise<User> => {
     const response = await apiClient.post('/auth/login', {
       email: credentials.email,
@@ -71,7 +117,11 @@ export const authService = {
       role: user.org_user_role || user.role || 'admin',
       org_user_role: user.org_user_role || user.role || 'admin',
       organisation_id: user.organisation_id,
-      organisationName: user.organisation_name || 'Organisation',
+      organisationName: user.organisation_name || user.organisation?.name || 'Organisation',
+      is_active: user.is_active ?? user.organisation?.is_active ?? false,
+      is_approved: user.is_approved ?? user.organisation?.is_approved ?? 0,
+      block_reason: user.block_reason || user.organisation?.block_reason || null,
+      organisation: user.organisation || null,
       avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=256'
     };
 
