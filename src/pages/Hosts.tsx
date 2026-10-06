@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, X, Upload, User, Calendar, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { 
+  Plus, Edit2, Trash2, X, Upload, User, Calendar, Calendar as CalendarIcon, 
+  ChevronLeft, ChevronRight, KeyRound, ShieldAlert, ShieldCheck, Eye, EyeOff, Ban 
+} from 'lucide-react';
 import { hostApi } from '@/api/services';
 import type { Host } from '@/types';
 
@@ -22,8 +24,18 @@ export default function Hosts() {
     designation: '',
     department: '',
     is_available: true,
+    is_blocked: false,
+    password: '',
     profile_pic: '',
   });
+  const [showFormPassword, setShowFormPassword] = useState(false);
+
+  // Dedicated Password Modal State
+  const [passwordHost, setPasswordHost] = useState<Host | null>(null);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [passwordSubmitting, setPasswordSubmitting] = useState(false);
 
   // Calendar Modal State
   const [calendarHost, setCalendarHost] = useState<Host | null>(null);
@@ -76,10 +88,13 @@ export default function Hosts() {
       designation: '',
       department: '',
       is_available: true,
+      is_blocked: false,
+      password: '',
       profile_pic: '',
     });
     setProfilePicFile(null);
     setProfilePicPreview(null);
+    setShowFormPassword(false);
     setShowModal(true);
     setMessage(null);
   };
@@ -93,10 +108,13 @@ export default function Hosts() {
       designation: host.designation || '',
       department: host.department || '',
       is_available: host.is_available_toggle ?? host.is_available ?? true,
+      is_blocked: host.is_blocked || false,
+      password: '',
       profile_pic: host.profile_pic || '',
     });
     setProfilePicFile(null);
     setProfilePicPreview(host.profile_pic || null);
+    setShowFormPassword(false);
     setShowModal(true);
     setMessage(null);
   };
@@ -111,11 +129,68 @@ export default function Hosts() {
       designation: '',
       department: '',
       is_available: true,
+      is_blocked: false,
+      password: '',
       profile_pic: '',
     });
     setProfilePicFile(null);
     setProfilePicPreview(null);
+    setShowFormPassword(false);
     setMessage(null);
+  };
+
+  // Password Modal Handlers
+  const openPasswordModal = (host: Host) => {
+    setPasswordHost(host);
+    setNewPassword('');
+    setShowNewPassword(false);
+    setShowPasswordModal(true);
+  };
+
+  const closePasswordModal = () => {
+    setShowPasswordModal(false);
+    setPasswordHost(null);
+    setNewPassword('');
+    setShowNewPassword(false);
+  };
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!passwordHost) return;
+    if (!newPassword.trim()) {
+      setMessage({ type: 'error', text: 'Password cannot be empty' });
+      return;
+    }
+    setPasswordSubmitting(true);
+    try {
+      const res = await hostApi.changePassword(passwordHost.id, newPassword.trim());
+      if (res.data.success) {
+        setMessage({ type: 'success', text: `Password for ${passwordHost.full_name} updated successfully!` });
+        await fetchHosts();
+        closePasswordModal();
+        setTimeout(() => setMessage(null), 3000);
+      }
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to update host password' });
+    } finally {
+      setPasswordSubmitting(false);
+    }
+  };
+
+  const toggleBlockStatus = async (id: number, currentBlocked: boolean) => {
+    try {
+      const res = await hostApi.toggleBlock(id);
+      if (res.data.success) {
+        await fetchHosts();
+        setMessage({
+          type: 'success',
+          text: `Host ${!currentBlocked ? 'blocked' : 'unblocked'} successfully!`
+        });
+        setTimeout(() => setMessage(null), 3000);
+      }
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to update host block status' });
+    }
   };
 
   // Open Calendar Modal for Host
@@ -334,28 +409,34 @@ export default function Hosts() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-col gap-1">
-                        <button
-                          onClick={() => toggleAvailability(host.id, toggleState)}
-                          className="text-xs px-2.5 py-1 rounded-full font-semibold transition-all w-fit"
-                          style={{
-                            backgroundColor: isAvailableEffective
-                              ? '#dcfce7'
+                        {host.is_blocked ? (
+                          <span className="text-xs px-2.5 py-1 rounded-full font-bold bg-rose-100 text-rose-700 w-fit flex items-center gap-1">
+                            ⛔ Blocked
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => toggleAvailability(host.id, toggleState)}
+                            className="text-xs px-2.5 py-1 rounded-full font-semibold transition-all w-fit"
+                            style={{
+                              backgroundColor: isAvailableEffective
+                                ? '#dcfce7'
+                                : isDateOffToday
+                                ? '#fef3c7'
+                                : '#fee2e2',
+                              color: isAvailableEffective
+                                ? '#15803d'
+                                : isDateOffToday
+                                ? '#b45309'
+                                : '#dc2626',
+                            }}
+                          >
+                            {isAvailableEffective
+                              ? '🟢 Available'
                               : isDateOffToday
-                              ? '#fef3c7'
-                              : '#fee2e2',
-                            color: isAvailableEffective
-                              ? '#15803d'
-                              : isDateOffToday
-                              ? '#b45309'
-                              : '#dc2626',
-                          }}
-                        >
-                          {isAvailableEffective
-                            ? '🟢 Available'
-                            : isDateOffToday
-                            ? '📅 On Leave Today'
-                            : '🔴 Toggle Off'}
-                        </button>
+                              ? '📅 On Leave Today'
+                              : '🔴 Toggle Off'}
+                          </button>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3">
@@ -373,7 +454,41 @@ export default function Hosts() {
                       </button>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {/* Change Password button */}
+                        <button
+                          onClick={() => openPasswordModal(host)}
+                          className="p-1.5 rounded-lg transition-all"
+                          title="Change Host Password"
+                          style={{ color: '#94a3b8' }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = '#d97706';
+                            e.currentTarget.style.backgroundColor = 'rgba(217, 119, 6, 0.08)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = '#94a3b8';
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }}
+                        >
+                          <KeyRound className="h-4 w-4" />
+                        </button>
+                        {/* Block / Unblock toggle button */}
+                        <button
+                          onClick={() => toggleBlockStatus(host.id, !!host.is_blocked)}
+                          className="p-1.5 rounded-lg transition-all"
+                          title={host.is_blocked ? "Unblock Host" : "Block Host"}
+                          style={{ color: host.is_blocked ? '#dc2626' : '#94a3b8' }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = host.is_blocked ? '#16a34a' : '#dc2626';
+                            e.currentTarget.style.backgroundColor = host.is_blocked ? 'rgba(22, 163, 74, 0.08)' : 'rgba(220, 38, 38, 0.08)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = host.is_blocked ? '#dc2626' : '#94a3b8';
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }}
+                        >
+                          {host.is_blocked ? <ShieldCheck className="h-4 w-4 text-emerald-600" /> : <Ban className="h-4 w-4" />}
+                        </button>
                         <button
                           onClick={() => openEditModal(host)}
                           className="p-1.5 rounded-lg transition-all"
@@ -515,6 +630,30 @@ export default function Hosts() {
               </div>
 
               <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  {editingHost ? 'Change Password (optional)' : 'Password *'}
+                </label>
+                <div className="relative">
+                  <input
+                    type={showFormPassword ? 'text' : 'password'}
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    required={!editingHost}
+                    placeholder={editingHost ? '•••••••• (leave blank to keep current)' : 'Enter initial password'}
+                    className="w-full px-4 py-2.5 pr-10 bg-white border border-slate-300 rounded-xl outline-none text-xs font-bold text-slate-800 focus:border-[#035352] focus:ring-2 focus:ring-[#035352]/20 transition-all shadow-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowFormPassword(!showFormPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  >
+                    {showFormPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
                 <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl bg-slate-50 border border-slate-200">
                   <input
                     type="checkbox"
@@ -528,6 +667,28 @@ export default function Hosts() {
                   </span>
                 </label>
               </div>
+
+              {editingHost && (
+                <div>
+                  <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl bg-rose-50/60 border border-rose-200">
+                    <input
+                      type="checkbox"
+                      name="is_blocked"
+                      checked={formData.is_blocked}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, is_blocked: e.target.checked }))}
+                      className="w-4 h-4 rounded text-rose-600 focus:ring-rose-500"
+                    />
+                    <div>
+                      <span className="text-xs font-bold text-rose-900 block">
+                        Block Host Account
+                      </span>
+                      <span className="text-[11px] text-rose-700/80 font-medium">
+                        Blocked hosts cannot be selected by visitors and cannot log in
+                      </span>
+                    </div>
+                  </label>
+                </div>
+              )}
 
               <div className="flex gap-3 pt-6 border-t border-slate-100">
                 <button
@@ -694,6 +855,75 @@ export default function Hosts() {
                 {calendarSubmitting ? 'Saving...' : 'Save Leave Calendar'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dedicated Change Password Modal */}
+      {showPasswordModal && passwordHost && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 sm:p-7 border border-slate-200 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold">
+                  <KeyRound className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-[#172525]">Change Host Password</h2>
+                  <p className="text-xs font-semibold text-slate-500 truncate max-w-[200px]">
+                    {passwordHost.full_name}
+                  </p>
+                </div>
+              </div>
+              <button onClick={closePasswordModal} className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  New Password *
+                </label>
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    placeholder="Enter new password"
+                    className="w-full px-4 py-2.5 pr-10 bg-white border border-slate-300 rounded-xl outline-none text-xs font-bold text-slate-800 focus:border-[#035352] focus:ring-2 focus:ring-[#035352]/20 transition-all shadow-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  >
+                    {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1 font-medium">
+                  Plain-text credentials for host account.
+                </p>
+              </div>
+
+              <div className="flex gap-2.5 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={closePasswordModal}
+                  className="flex-1 py-2.5 rounded-xl font-bold text-xs bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 transition-all shadow-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={passwordSubmitting}
+                  className="flex-1 py-2.5 rounded-xl font-bold text-xs text-white bg-[#035352] hover:bg-[#023e3d] shadow-md shadow-[#035352]/20 transition-all disabled:opacity-50"
+                >
+                  {passwordSubmitting ? 'Updating...' : 'Update Password'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

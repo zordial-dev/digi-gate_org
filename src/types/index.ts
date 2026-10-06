@@ -33,6 +33,8 @@ export interface Host {
   is_date_unavailable?: boolean;
   unavailable_dates?: string[];
   is_active: boolean;
+  is_blocked?: boolean;
+  password?: string;
   organisation?: Organisation; // Added optional organisation
 }
 
