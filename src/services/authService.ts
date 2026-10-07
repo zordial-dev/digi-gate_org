@@ -15,6 +15,11 @@ export interface User {
   is_active?: boolean;
   is_approved?: number;
   block_reason?: string | null;
+  department?: string;
+  designation?: string;
+  mobile_number?: string;
+  is_first_login?: boolean;
+  is_blocked?: boolean;
   organisation?: {
     id: number;
     name: string;
@@ -34,6 +39,32 @@ export interface LoginCredentials {
   email: string;
   password?: string;
   rememberMe?: boolean;
+}
+
+export interface HostLoginCredentials {
+  identifier: string; // Host ID or Email
+  password?: string;
+  rememberMe?: boolean;
+}
+
+export interface HostLoginResult {
+  requiresNewPassword?: boolean;
+  host?: {
+    id: number | string;
+    full_name: string;
+    email: string;
+    organisation_id?: number;
+    organisation_name?: string;
+  };
+  user?: User;
+}
+
+export interface HostSetPasswordPayload {
+  hostId?: number | string;
+  identifier?: string;
+  email?: string;
+  new_password: string;
+  confirm_password?: string;
 }
 
 export interface RegisterCredentials {
@@ -134,6 +165,93 @@ export const authService = {
       localStorage.setItem(TOKEN_KEY, token);
       localStorage.setItem(USER_KEY, JSON.stringify(mappedUser));
     }
+
+    return mappedUser;
+  },
+
+  hostLogin: async (credentials: HostLoginCredentials): Promise<HostLoginResult> => {
+    const response = await apiClient.post('/auth/host-login', {
+      identifier: credentials.identifier,
+      password: credentials.password,
+    });
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Host login failed.');
+    }
+
+    if (response.data.requiresNewPassword) {
+      return {
+        requiresNewPassword: true,
+        host: response.data.host
+      };
+    }
+
+    const { token, user } = response.data;
+    const mappedUser: User = {
+      id: user.id,
+      fullName: user.full_name || user.username,
+      full_name: user.full_name,
+      email: user.email,
+      username: user.username,
+      role: 'host',
+      org_user_role: 'host',
+      organisation_id: user.organisation_id,
+      organisationName: user.organisation_name || user.organisation?.name || 'Organisation',
+      is_active: true,
+      is_approved: 1,
+      is_blocked: user.is_blocked || false,
+      is_first_login: user.is_first_login || false,
+      department: user.department,
+      designation: user.designation,
+      mobile_number: user.mobile_number,
+      organisation: user.organisation || null,
+      avatar: user.profile_pic ? `${apiClient.defaults.baseURL?.replace('/api', '') || ''}${user.profile_pic}` : undefined
+    };
+
+    if (credentials.rememberMe) {
+      localStorage.setItem(TOKEN_KEY, token);
+      localStorage.setItem(USER_KEY, JSON.stringify(mappedUser));
+    } else {
+      sessionStorage.setItem(TOKEN_KEY, token);
+      sessionStorage.setItem(USER_KEY, JSON.stringify(mappedUser));
+      localStorage.setItem(TOKEN_KEY, token);
+      localStorage.setItem(USER_KEY, JSON.stringify(mappedUser));
+    }
+
+    return { user: mappedUser };
+  },
+
+  setHostNewPassword: async (payload: HostSetPasswordPayload): Promise<User> => {
+    const response = await apiClient.post('/auth/host/set-password', payload);
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Failed to set password.');
+    }
+
+    const { token, user } = response.data;
+    const mappedUser: User = {
+      id: user.id,
+      fullName: user.full_name || user.username,
+      full_name: user.full_name,
+      email: user.email,
+      username: user.username,
+      role: 'host',
+      org_user_role: 'host',
+      organisation_id: user.organisation_id,
+      organisationName: user.organisation_name || user.organisation?.name || 'Organisation',
+      is_active: true,
+      is_approved: 1,
+      is_blocked: user.is_blocked || false,
+      is_first_login: false,
+      department: user.department,
+      designation: user.designation,
+      mobile_number: user.mobile_number,
+      organisation: user.organisation || null,
+      avatar: user.profile_pic ? `${apiClient.defaults.baseURL?.replace('/api', '') || ''}${user.profile_pic}` : undefined
+    };
+
+    localStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(USER_KEY, JSON.stringify(mappedUser));
 
     return mappedUser;
   },

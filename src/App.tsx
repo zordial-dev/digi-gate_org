@@ -16,7 +16,15 @@ import ForgotPassword from '@/pages/ForgotPassword';
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  if (user?.org_user_role === 'sub_admin') {
+  if (user?.org_user_role === 'sub_admin' || user?.role === 'host' || user?.org_user_role === 'host') {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+}
+
+function NonHostRoute({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  if (user?.role === 'host' || user?.org_user_role === 'host') {
     return <Navigate to="/" replace />;
   }
   return <>{children}</>;
@@ -47,7 +55,14 @@ function App() {
                           <Route path="/" element={<Dashboard />} />
                           <Route path="/visitors" element={<Visitors />} />
                           <Route path="/visits" element={<Visits />} />
-                          <Route path="/hosts" element={<Hosts />} />
+                          <Route
+                            path="/hosts"
+                            element={
+                              <NonHostRoute>
+                                <Hosts />
+                              </NonHostRoute>
+                            }
+                          />
                           <Route
                             path="/admins"
                             element={
@@ -56,7 +71,14 @@ function App() {
                               </AdminRoute>
                             }
                           />
-                          <Route path="/settings" element={<Settings />} />
+                          <Route
+                            path="/settings"
+                            element={
+                              <NonHostRoute>
+                                <Settings />
+                              </NonHostRoute>
+                            }
+                          />
                           <Route path="*" element={<Navigate to="/" replace />} />
                         </Routes>
                       </main>

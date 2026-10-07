@@ -80,8 +80,8 @@ export const hostApi = {
   toggleBlock: (id: number) =>
     apiClient.patch<ApiResponse<Host>>(`/hosts/${id}/toggle-block`),
 
-  changePassword: (id: number, password: string) =>
-    apiClient.patch<ApiResponse<Host>>(`/hosts/${id}/password`, { password }),
+  changePassword: (id: number, password?: string) =>
+    apiClient.patch<ApiResponse<Host> & { newPassword?: string }>(`/hosts/${id}/password`, { password }),
 
   updateUnavailableDates: (id: number, unavailable_dates: string[]) =>
     apiClient.patch<ApiResponse<Host>>(`/hosts/${id}/unavailable-dates`, { unavailable_dates }),

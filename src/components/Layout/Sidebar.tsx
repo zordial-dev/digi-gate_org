@@ -24,14 +24,23 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const isHost = user?.role === 'host' || user?.org_user_role === 'host';
   const isSubAdmin = user?.org_user_role === 'sub_admin';
-  const navItems = isSubAdmin
-    ? baseNavItems
-    : [
-        ...baseNavItems.slice(0, 4),
-        { path: '/admins', label: 'Manage Admins', icon: ShieldCheck },
-        ...baseNavItems.slice(4),
-      ];
+
+  let navItems = baseNavItems;
+  if (isHost) {
+    navItems = [
+      { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+      { path: '/visitors', label: 'Visitors', icon: Users },
+      { path: '/visits', label: 'Visits', icon: ClipboardList },
+    ];
+  } else if (!isSubAdmin) {
+    navItems = [
+      ...baseNavItems.slice(0, 4),
+      { path: '/admins', label: 'Manage Admins', icon: ShieldCheck },
+      ...baseNavItems.slice(4),
+    ];
+  }
 
   const handleLogout = async () => {
     try {
@@ -61,7 +70,7 @@ export default function Sidebar() {
               DIGI-GATE
             </h1>
             <p className="text-[10px] font-extrabold uppercase tracking-wider text-[#035352]">
-              Organisation Portal
+              {isHost ? 'Host Portal' : 'Organisation Portal'}
             </p>
           </div>
         </div>
@@ -96,9 +105,16 @@ export default function Sidebar() {
             {initial}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-extrabold text-[#172525] truncate">
-              {displayName}
-            </p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-xs font-extrabold text-[#172525] truncate">
+                {displayName}
+              </p>
+              {isHost && (
+                <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded bg-teal-100 text-[#035352]">
+                  Host
+                </span>
+              )}
+            </div>
             <p className="text-[11px] text-slate-500 truncate font-medium">
               {displayEmail}
             </p>

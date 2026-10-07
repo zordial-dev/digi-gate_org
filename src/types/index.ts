@@ -35,6 +35,7 @@ export interface Host {
   is_active: boolean;
   is_blocked?: boolean;
   password?: string;
+  is_first_login?: boolean;
   organisation?: Organisation; // Added optional organisation
 }
 

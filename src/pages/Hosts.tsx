@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
   Plus, Edit2, Trash2, X, Upload, User, Calendar, Calendar as CalendarIcon, 
-  ChevronLeft, ChevronRight, KeyRound, ShieldCheck, Eye, EyeOff, Ban 
+  ChevronLeft, ChevronRight, KeyRound, ShieldCheck, Eye, EyeOff, Ban, Copy, Check, Sparkles 
 } from 'lucide-react';
 import { hostApi } from '@/api/services';
 import type { Host } from '@/types';
@@ -37,6 +37,8 @@ export default function Hosts() {
   const [newPassword, setNewPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [passwordSubmitting, setPasswordSubmitting] = useState(false);
+  const [resetSuccessData, setResetSuccessData] = useState<{ newPassword: string; hostName: string } | null>(null);
+  const [copiedPassword, setCopiedPassword] = useState(false);
 
   // Calendar Modal State
   const [calendarHost, setCalendarHost] = useState<Host | null>(null);
@@ -145,6 +147,8 @@ export default function Hosts() {
     setPasswordHost(host);
     setNewPassword('');
     setShowNewPassword(false);
+    setResetSuccessData(null);
+    setCopiedPassword(false);
     setShowPasswordModal(true);
   };
 
@@ -153,23 +157,23 @@ export default function Hosts() {
     setPasswordHost(null);
     setNewPassword('');
     setShowNewPassword(false);
+    setResetSuccessData(null);
+    setCopiedPassword(false);
   };
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!passwordHost) return;
-    if (!newPassword.trim()) {
-      setMessage({ type: 'error', text: 'Password cannot be empty' });
-      return;
-    }
     setPasswordSubmitting(true);
     try {
-      const res = await hostApi.changePassword(passwordHost.id, newPassword.trim());
+      const res = await hostApi.changePassword(passwordHost.id, newPassword.trim() || undefined);
       if (res.data.success) {
-        setMessage({ type: 'success', text: `Password for ${passwordHost.full_name} updated successfully!` });
+        const generatedPass = (res.data as any).newPassword || newPassword.trim();
+        setResetSuccessData({
+          newPassword: generatedPass,
+          hostName: passwordHost.full_name,
+        });
         await fetchHosts();
-        closePasswordModal();
-        setTimeout(() => setMessage(null), 3000);
       }
     } catch (error: any) {
       setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to update host password' });
@@ -261,9 +265,13 @@ export default function Hosts() {
       }
 
       if (res.data.success) {
-        setMessage({ type: 'success', text: `Host ${editingHost ? 'updated' : 'created'} successfully!` });
+        const tempPass = (res.data as any).tempPassword;
+        const successMsg = tempPass 
+          ? `Host ${formData.full_name} created successfully! Temporary Password: ${tempPass} (Welcome email dispatched).`
+          : `Host ${editingHost ? 'updated' : 'created'} successfully!`;
+        setMessage({ type: 'success', text: successMsg });
         await fetchHosts();
-        setTimeout(closeModal, 1000);
+        setTimeout(closeModal, tempPass ? 2500 : 1000);
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to save host' });
@@ -632,7 +640,7 @@ export default function Hosts() {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  {editingHost ? 'Change Password (optional)' : 'Password *'}
+                  {editingHost ? 'Change Password (optional)' : 'Initial / Temp Password (optional)'}
                 </label>
                 <div className="relative">
                   <input
@@ -640,8 +648,7 @@ export default function Hosts() {
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    required={!editingHost}
-                    placeholder={editingHost ? '•••••••• (leave blank to keep current)' : 'Enter initial password'}
+                    placeholder={editingHost ? '•••••••• (leave blank to keep current)' : 'Leave blank to auto-generate temporary password'}
                     className="w-full px-4 py-2.5 pr-10 bg-white border border-slate-300 rounded-xl outline-none text-xs font-bold text-slate-800 focus:border-[#035352] focus:ring-2 focus:ring-[#035352]/20 transition-all shadow-sm"
                   />
                   <button
@@ -652,6 +659,11 @@ export default function Hosts() {
                     {showFormPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+                {!editingHost && (
+                  <p className="text-[11px] text-slate-500 mt-1 font-medium">
+                    ✨ A temporary password will be auto-generated and emailed to the host upon creation.
+                  </p>
+                )}
               </div>
 
               <div>
@@ -881,50 +893,123 @@ export default function Hosts() {
               </button>
             </div>
 
-            <form onSubmit={handlePasswordSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  New Password *
-                </label>
-                <div className="relative">
-                  <input
-                    type={showNewPassword ? 'text' : 'password'}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    required
-                    placeholder="Enter new password"
-                    className="w-full px-4 py-2.5 pr-10 bg-white border border-slate-300 rounded-xl outline-none text-xs font-bold text-slate-800 focus:border-[#035352] focus:ring-2 focus:ring-[#035352]/20 transition-all shadow-sm"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowNewPassword(!showNewPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
-                  >
-                    {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
+            {resetSuccessData ? (
+              <div className="space-y-4 animate-in fade-in duration-200">
+                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-center space-y-2">
+                  <div className="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto shadow-md shadow-emerald-500/20">
+                    <ShieldCheck className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-sm font-black text-emerald-900">
+                    Password Reset Successful!
+                  </h3>
+                  <p className="text-xs text-emerald-700 leading-relaxed">
+                    A notification email was dispatched to <strong>{passwordHost.email}</strong> (without credentials).
+                  </p>
                 </div>
-                <p className="text-[11px] text-slate-400 mt-1 font-medium">
-                  Plain-text credentials for host account.
-                </p>
-              </div>
 
-              <div className="flex gap-2.5 pt-4 border-t border-slate-100">
+                <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-1.5">
+                  <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    New Host Password
+                  </p>
+                  <div className="flex items-center justify-between gap-2">
+                    <code className="text-sm font-black font-mono text-[#035352] tracking-wider bg-white px-3 py-1.5 rounded-xl border border-slate-200 flex-1 select-all">
+                      {resetSuccessData.newPassword}
+                    </code>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(resetSuccessData.newPassword);
+                        setCopiedPassword(true);
+                        setTimeout(() => setCopiedPassword(false), 2000);
+                      }}
+                      className="px-3 py-2 rounded-xl text-xs font-bold bg-[#035352] text-white hover:bg-[#023e3d] transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+                    >
+                      {copiedPassword ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-[#F3E8BC]" />
+                          <span>Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Copy</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
+                  🔒 Provide this password to the host. Per policy, the host can log in immediately with this password without needing to change it.
+                </p>
+
                 <button
                   type="button"
                   onClick={closePasswordModal}
-                  className="flex-1 py-2.5 rounded-xl font-bold text-xs bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 transition-all shadow-sm"
+                  className="w-full py-2.5 rounded-xl font-bold text-xs text-white bg-[#035352] hover:bg-[#023e3d] shadow-md shadow-[#035352]/20 transition-all cursor-pointer"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={passwordSubmitting}
-                  className="flex-1 py-2.5 rounded-xl font-bold text-xs text-white bg-[#035352] hover:bg-[#023e3d] shadow-md shadow-[#035352]/20 transition-all disabled:opacity-50"
-                >
-                  {passwordSubmitting ? 'Updating...' : 'Update Password'}
+                  Done
                 </button>
               </div>
-            </form>
+            ) : (
+              <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      New Password
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const randomPass = `DG-${Math.floor(100000 + Math.random() * 900000)}`;
+                        setNewPassword(randomPass);
+                        setShowNewPassword(true);
+                      }}
+                      className="text-[11px] font-bold text-[#035352] hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      Auto-Generate
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showNewPassword ? 'text' : 'password'}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Leave blank to auto-generate"
+                      className="w-full px-4 py-2.5 pr-10 bg-white border border-slate-300 rounded-xl outline-none text-xs font-bold text-slate-800 focus:border-[#035352] focus:ring-2 focus:ring-[#035352]/20 transition-all shadow-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    >
+                      {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-1 font-medium">
+                    A notification email will be dispatched to the host (without credentials).
+                  </p>
+                </div>
+
+                <div className="flex gap-2.5 pt-4 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={closePasswordModal}
+                    className="flex-1 py-2.5 rounded-xl font-bold text-xs bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 transition-all shadow-sm cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={passwordSubmitting}
+                    className="flex-1 py-2.5 rounded-xl font-bold text-xs text-white bg-[#035352] hover:bg-[#023e3d] shadow-md shadow-[#035352]/20 transition-all disabled:opacity-50 cursor-pointer"
+                  >
+                    {passwordSubmitting ? 'Resetting...' : 'Reset Password'}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

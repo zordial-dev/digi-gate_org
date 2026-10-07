@@ -1,11 +1,21 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, LoginCredentials, RegisterCredentials, authService } from '../services/authService';
+import { 
+  User, 
+  LoginCredentials, 
+  RegisterCredentials, 
+  HostLoginCredentials, 
+  HostLoginResult, 
+  HostSetPasswordPayload, 
+  authService 
+} from '../services/authService';
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
+  hostLogin: (credentials: HostLoginCredentials) => Promise<HostLoginResult>;
+  setHostNewPassword: (payload: HostSetPasswordPayload) => Promise<User>;
   register: (data: RegisterCredentials) => Promise<{ requiresOtp: boolean; email: string; devOtp?: string }>;
   verifyOtp: (email: string, otp: string) => Promise<{ requiresApproval: boolean; user: User | null }>;
   forgotPassword: (email: string) => Promise<{ success: boolean; email: string; devOtp?: string }>;
@@ -49,6 +59,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const hostLogin = async (credentials: HostLoginCredentials): Promise<HostLoginResult> => {
+    setIsLoading(true);
+    try {
+      const result = await authService.hostLogin(credentials);
+      if (result.user) {
+        setUser(result.user);
+      }
+      return result;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const setHostNewPassword = async (payload: HostSetPasswordPayload): Promise<User> => {
+    setIsLoading(true);
+    try {
+      const updatedUser = await authService.setHostNewPassword(payload);
+      setUser(updatedUser);
+      return updatedUser;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const register = async (data: RegisterCredentials) => {
     return await authService.register(data);
   };
@@ -86,6 +120,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated: !!user,
         isLoading,
         login,
+        hostLogin,
+        setHostNewPassword,
         register,
         verifyOtp,
         forgotPassword,
