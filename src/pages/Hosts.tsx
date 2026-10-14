@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { 
-  Plus, Edit2, Trash2, X, Upload, User, Calendar, Calendar as CalendarIcon, 
-  ChevronLeft, ChevronRight, KeyRound, ShieldCheck, Eye, EyeOff, Ban, Copy, Check, Sparkles 
+import {
+  Plus, Edit2, Trash2, X, Upload, User, Calendar, Calendar as CalendarIcon,
+  ChevronLeft, ChevronRight, KeyRound, ShieldCheck, Eye, EyeOff, Ban, Copy, Check, Sparkles,
+  Clock, Coffee, Sun, CalendarDays
 } from 'lucide-react';
 import { hostApi } from '@/api/services';
 import type { Host } from '@/types';
@@ -16,6 +17,7 @@ export default function Hosts() {
   const [editingHost, setEditingHost] = useState<Host | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [modalError, setModalError] = useState<string | null>(null);
   const [profilePicFile, setProfilePicFile] = useState<File | null>(null);
   const [profilePicPreview, setProfilePicPreview] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -24,7 +26,6 @@ export default function Hosts() {
     mobile_number: '',
     designation: '',
     department: '',
-    is_available: true,
     is_blocked: false,
     password: '',
     profile_pic: '',
@@ -40,11 +41,33 @@ export default function Hosts() {
   const [resetSuccessData, setResetSuccessData] = useState<{ newPassword: string; hostName: string } | null>(null);
   const [copiedPassword, setCopiedPassword] = useState(false);
 
-  // Calendar Modal State
+  // Minimal Availability Modal State
   const [calendarHost, setCalendarHost] = useState<Host | null>(null);
   const [showCalendarModal, setShowCalendarModal] = useState(false);
+  const [workingDays, setWorkingDays] = useState<string[]>(['Mon', 'Tue', 'Wed', 'Thu', 'Fri']);
+  const [workStartTime, setWorkStartTime] = useState('09:00');
+  const [workEndTime, setWorkEndTime] = useState('18:00');
+  const [lunchStartTime, setLunchStartTime] = useState('13:00');
+  const [lunchEndTime, setLunchEndTime] = useState('14:00');
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
-  const [currentMonthDate, setCurrentMonthDate] = useState<Date>(new Date());
+  const [dateOverrides, setDateOverrides] = useState<Record<string, {
+    type?: 'off' | 'custom';
+    available_from?: string;
+    available_to?: string;
+    lunch_from?: string;
+    lunch_to?: string;
+  }>>({});
+  const [showAddOverride, setShowAddOverride] = useState(false);
+  const [overrideMode, setOverrideMode] = useState<'range' | 'multi'>('range');
+  const [overrideDate, setOverrideDate] = useState('');
+  const [overrideEndDate, setOverrideEndDate] = useState('');
+  const [multiDates, setMultiDates] = useState<string[]>([]);
+  const [multiMonthDate, setMultiMonthDate] = useState<Date>(new Date());
+  const [overrideType, setOverrideType] = useState<'off' | 'custom'>('off');
+  const [overrideWorkIn, setOverrideWorkIn] = useState('09:00');
+  const [overrideWorkOut, setOverrideWorkOut] = useState('18:00');
+  const [overrideLunchIn, setOverrideLunchIn] = useState('13:00');
+  const [overrideLunchOut, setOverrideLunchOut] = useState('14:00');
   const [calendarSubmitting, setCalendarSubmitting] = useState(false);
 
   const organisationId = user?.organisation_id || 1;
@@ -90,7 +113,6 @@ export default function Hosts() {
       mobile_number: '',
       designation: '',
       department: '',
-      is_available: true,
       is_blocked: false,
       password: '',
       profile_pic: '',
@@ -100,6 +122,7 @@ export default function Hosts() {
     setShowFormPassword(false);
     setShowModal(true);
     setMessage(null);
+    setModalError(null);
   };
 
   const openEditModal = (host: Host) => {
@@ -110,7 +133,6 @@ export default function Hosts() {
       mobile_number: host.mobile_number || '',
       designation: host.designation || '',
       department: host.department || '',
-      is_available: host.is_available_toggle ?? host.is_available ?? true,
       is_blocked: host.is_blocked || false,
       password: '',
       profile_pic: host.profile_pic || '',
@@ -120,6 +142,7 @@ export default function Hosts() {
     setShowFormPassword(false);
     setShowModal(true);
     setMessage(null);
+    setModalError(null);
   };
 
   const closeModal = () => {
@@ -131,7 +154,6 @@ export default function Hosts() {
       mobile_number: '',
       designation: '',
       department: '',
-      is_available: true,
       is_blocked: false,
       password: '',
       profile_pic: '',
@@ -140,6 +162,7 @@ export default function Hosts() {
     setProfilePicPreview(null);
     setShowFormPassword(false);
     setMessage(null);
+    setModalError(null);
   };
 
   // Password Modal Handlers
@@ -198,39 +221,155 @@ export default function Hosts() {
     }
   };
 
-  // Open Calendar Modal for Host
-  const openCalendarModal = (host: Host) => {
+  // Availability Modal Handlers
+  const openAvailabilityModal = (host: Host) => {
     setCalendarHost(host);
     setSelectedDates(Array.isArray(host.unavailable_dates) ? [...host.unavailable_dates] : []);
-    setCurrentMonthDate(new Date());
+    setWorkingDays(
+      Array.isArray(host.working_days) && host.working_days.length > 0
+        ? [...host.working_days]
+        : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
+    );
+    setWorkStartTime(host.available_from ? host.available_from.slice(0, 5) : '09:00');
+    setWorkEndTime(host.available_to ? host.available_to.slice(0, 5) : '18:00');
+    setLunchStartTime(host.lunch_from ? host.lunch_from.slice(0, 5) : '13:00');
+    setLunchEndTime(host.lunch_to ? host.lunch_to.slice(0, 5) : '14:00');
+    setDateOverrides(
+      typeof host.date_overrides === 'object' && host.date_overrides !== null
+        ? { ...host.date_overrides }
+        : {}
+    );
+    setShowAddOverride(false);
+    setOverrideMode('range');
+    setOverrideDate('');
+    setOverrideEndDate('');
+    setMultiDates([]);
+    setMultiMonthDate(new Date());
     setShowCalendarModal(true);
   };
 
-  const closeCalendarModal = () => {
+  const closeAvailabilityModal = () => {
     setShowCalendarModal(false);
     setCalendarHost(null);
-    setSelectedDates([]);
+    setShowAddOverride(false);
+    setOverrideDate('');
+    setOverrideEndDate('');
+    setMultiDates([]);
   };
 
-  const toggleDateSelection = (dateStr: string) => {
-    setSelectedDates((prev) =>
-      prev.includes(dateStr) ? prev.filter((d) => d !== dateStr) : [...prev, dateStr]
+  const toggleWorkingDay = (day: string) => {
+    setWorkingDays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
     );
   };
 
-  const handleSaveCalendar = async () => {
+  const getDatesInRange = (startDateStr: string, endDateStr: string): string[] => {
+    if (!startDateStr) return [];
+    if (!endDateStr || endDateStr <= startDateStr) return [startDateStr];
+
+    const dates: string[] = [];
+    const current = new Date(startDateStr + 'T00:00:00');
+    const end = new Date(endDateStr + 'T00:00:00');
+
+    let count = 0;
+    while (current <= end && count < 90) {
+      const y = current.getFullYear();
+      const m = String(current.getMonth() + 1).padStart(2, '0');
+      const d = String(current.getDate()).padStart(2, '0');
+      dates.push(`${y}-${m}-${d}`);
+      current.setDate(current.getDate() + 1);
+      count++;
+    }
+    return dates;
+  };
+
+  const toggleMultiDate = (dStr: string) => {
+    if (dStr < todayStr) return;
+    setMultiDates((prev) =>
+      prev.includes(dStr) ? prev.filter((x) => x !== dStr) : [...prev, dStr]
+    );
+  };
+
+  const handleAddOverride = () => {
+    let targetDates: string[] = [];
+    if (overrideMode === 'range') {
+      if (!overrideDate) return;
+      targetDates = getDatesInRange(overrideDate, overrideEndDate);
+    } else {
+      targetDates = multiDates;
+    }
+
+    if (targetDates.length === 0) return;
+
+    if (overrideType === 'off') {
+      setSelectedDates((prev) => {
+        const set = new Set([...prev, ...targetDates]);
+        return Array.from(set).sort();
+      });
+      setDateOverrides((prev) => {
+        const next = { ...prev };
+        targetDates.forEach((d) => delete next[d]);
+        return next;
+      });
+    } else {
+      setSelectedDates((prev) => prev.filter((d) => !targetDates.includes(d)));
+      setDateOverrides((prev) => {
+        const next = { ...prev };
+        targetDates.forEach((d) => {
+          next[d] = {
+            type: 'custom',
+            available_from: `${overrideWorkIn}:00`,
+            available_to: `${overrideWorkOut}:00`,
+            lunch_from: `${overrideLunchIn}:00`,
+            lunch_to: `${overrideLunchOut}:00`,
+          };
+        });
+        return next;
+      });
+    }
+
+    setOverrideDate('');
+    setOverrideEndDate('');
+    setMultiDates([]);
+    setShowAddOverride(false);
+  };
+
+  const handleRemoveOverride = (dateStr: string) => {
+    setSelectedDates((prev) => prev.filter((d) => d !== dateStr));
+    setDateOverrides((prev) => {
+      const next = { ...prev };
+      delete next[dateStr];
+      return next;
+    });
+  };
+
+  const handleClearAllOverrides = () => {
+    if (!confirm('Remove all scheduled leaves and date overrides for this host?')) return;
+    setSelectedDates([]);
+    setDateOverrides({});
+  };
+
+  const handleSaveAvailability = async () => {
     if (!calendarHost) return;
     setCalendarSubmitting(true);
     try {
-      const res = await hostApi.updateUnavailableDates(calendarHost.id, selectedDates);
+      const res = await hostApi.updateAvailability(calendarHost.id, {
+        unavailable_dates: selectedDates,
+        available_from: workStartTime ? `${workStartTime}:00` : '09:00:00',
+        available_to: workEndTime ? `${workEndTime}:00` : '18:00:00',
+        lunch_from: lunchStartTime ? `${lunchStartTime}:00` : '13:00:00',
+        lunch_to: lunchEndTime ? `${lunchEndTime}:00` : '14:00:00',
+        working_days: workingDays,
+        date_overrides: dateOverrides,
+      });
       if (res.data.success) {
-        setMessage({ type: 'success', text: `Leave calendar updated for ${calendarHost.full_name}` });
+        setMessage({ type: 'success', text: `Availability schedule updated for ${calendarHost.full_name}!` });
         await fetchHosts();
-        closeCalendarModal();
+        closeAvailabilityModal();
         setTimeout(() => setMessage(null), 3000);
       }
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to update leave calendar' });
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to update availability schedule' });
     } finally {
       setCalendarSubmitting(false);
     }
@@ -266,15 +405,18 @@ export default function Hosts() {
 
       if (res.data.success) {
         const tempPass = (res.data as any).tempPassword;
-        const successMsg = tempPass 
+        const successMsg = tempPass
           ? `Host ${formData.full_name} created successfully! Temporary Password: ${tempPass} (Welcome email dispatched).`
           : `Host ${editingHost ? 'updated' : 'created'} successfully!`;
         setMessage({ type: 'success', text: successMsg });
+        setModalError(null);
         await fetchHosts();
         setTimeout(closeModal, tempPass ? 2500 : 1000);
       }
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to save host' });
+    } catch (error: any) {
+      const errText = error?.response?.data?.error || error?.message || 'Failed to save host';
+      setModalError(errText);
+      setMessage({ type: 'error', text: errText });
     } finally {
       setSubmitting(false);
     }
@@ -295,33 +437,74 @@ export default function Hosts() {
     }
   };
 
-  const toggleAvailability = async (id: number, currentStatus: boolean) => {
-    try {
-      const res = await hostApi.toggleAvailability(id);
-      if (res.data.success) {
-        await fetchHosts();
-        setMessage({ type: 'success', text: `Host ${currentStatus ? 'unavailable' : 'available'}!` });
-        setTimeout(() => setMessage(null), 3000);
-      }
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to update host status' });
+
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+  // Real-time host availability calculator
+  const getHostLiveAvailability = (host: Host) => {
+    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const todayWeekday = weekdays[now.getDay()];
+    const currentHours = String(now.getHours()).padStart(2, '0');
+    const currentMinutes = String(now.getMinutes()).padStart(2, '0');
+    const currentTime = `${currentHours}:${currentMinutes}`;
+
+    const unavailableDates = Array.isArray(host.unavailable_dates) ? host.unavailable_dates : [];
+    const overrides = (typeof host.date_overrides === 'object' && host.date_overrides !== null) ? host.date_overrides : {};
+    const todayOverride = overrides[todayStr];
+
+    if (unavailableDates.includes(todayStr) || todayOverride?.type === 'off') {
+      return {
+        label: 'On Leave Today',
+        dotClass: 'bg-rose-500',
+        isAvailable: false,
+      };
     }
+
+    const hostWorkingDays = Array.isArray(host.working_days) && host.working_days.length > 0
+      ? host.working_days
+      : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+    if (!todayOverride && !hostWorkingDays.includes(todayWeekday)) {
+      return {
+        label: 'Off Duty Today',
+        dotClass: 'bg-slate-400',
+        isAvailable: false,
+      };
+    }
+
+    const formatT = (t: string | undefined, fallback: string) => {
+      if (!t) return fallback;
+      return String(t).slice(0, 5);
+    };
+
+    const inTime = formatT(todayOverride?.available_from || host.available_from, '09:00');
+    const outTime = formatT(todayOverride?.available_to || host.available_to, '18:00');
+    const lunchIn = formatT(todayOverride?.lunch_from || host.lunch_from, '13:00');
+    const lunchOut = formatT(todayOverride?.lunch_to || host.lunch_to, '14:00');
+
+    if (lunchIn && lunchOut && currentTime >= lunchIn && currentTime < lunchOut) {
+      return {
+        label: 'On Lunch',
+        dotClass: 'bg-amber-500',
+        isAvailable: false,
+      };
+    }
+
+    if (currentTime < inTime || currentTime >= outTime) {
+      return {
+        label: 'Out of Office',
+        dotClass: 'bg-slate-400',
+        isAvailable: false,
+      };
+    }
+
+    return {
+      label: 'Available',
+      dotClass: 'bg-emerald-500',
+      isAvailable: true,
+    };
   };
-
-  // Calendar calculation helpers
-  const year = currentMonthDate.getFullYear();
-  const month = currentMonthDate.getMonth();
-  const firstDayOfMonth = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const monthName = currentMonthDate.toLocaleString('default', { month: 'long' });
-
-  const formatDateStr = (yearNum: number, monthNum: number, dayNum: number) => {
-    const mm = String(monthNum + 1).padStart(2, '0');
-    const dd = String(dayNum).padStart(2, '0');
-    return `${yearNum}-${mm}-${dd}`;
-  };
-
-  const todayStr = new Date().toISOString().split('T')[0];
 
   if (loading) {
     return <div className="text-center py-8" style={{ color: '#64748b' }}>Loading hosts...</div>;
@@ -333,12 +516,12 @@ export default function Hosts() {
         <div>
           <h1 className="text-2xl font-black tracking-tight text-[#172525]">Hosts Management</h1>
           <p className="text-xs text-slate-500 font-medium mt-1">
-            Manage staff members, availability toggles, and leave calendars.
+            Manage staff members, availability schedules, and work & lunch hours.
           </p>
         </div>
         <button
           onClick={openCreateModal}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#035352] hover:bg-[#023e3d] shadow-md shadow-[#035352]/20 transition-all"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#035352] hover:bg-[#023e3d] shadow-md shadow-[#035352]/20 transition-all cursor-pointer"
         >
           <Plus className="h-4 w-4" />
           Add Host
@@ -347,11 +530,10 @@ export default function Hosts() {
 
       {message && (
         <div
-          className={`p-3.5 rounded-2xl border text-xs font-bold shadow-sm ${
-            message.type === 'success'
+          className={`p-3.5 rounded-2xl border text-xs font-bold shadow-sm ${message.type === 'success'
               ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
               : 'bg-rose-50 text-rose-800 border-rose-200'
-          }`}
+            }`}
         >
           {message.text}
         </div>
@@ -367,23 +549,19 @@ export default function Hosts() {
               <th className="px-4 py-3.5 font-bold text-[#035352] uppercase tracking-wider text-[11px]">Department</th>
               <th className="px-4 py-3.5 font-bold text-[#035352] uppercase tracking-wider text-[11px]">Email</th>
               <th className="px-4 py-3.5 font-bold text-[#035352] uppercase tracking-wider text-[11px]">Status</th>
-              <th className="px-4 py-3.5 font-bold text-[#035352] uppercase tracking-wider text-[11px]">Leave Calendar</th>
               <th className="px-4 py-3.5 font-bold text-[#035352] uppercase tracking-wider text-[11px] text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
             {hosts.length === 0 ? (
               <tr>
-                <td colSpan={8} className="text-center py-8" style={{ color: '#94a3b8' }}>
+                <td colSpan={7} className="text-center py-8" style={{ color: '#94a3b8' }}>
                   No hosts found
                 </td>
               </tr>
             ) : (
               hosts.map((host) => {
-                const dates = Array.isArray(host.unavailable_dates) ? host.unavailable_dates : [];
-                const isDateOffToday = dates.includes(todayStr);
-                const toggleState = host.is_available_toggle ?? host.is_available ?? true;
-                const isAvailableEffective = toggleState && !isDateOffToday;
+                const liveAvail = getHostLiveAvailability(host);
 
                 return (
                   <tr key={host.id} className="border-b" style={{ borderColor: '#f1f5f9' }}>
@@ -405,7 +583,14 @@ export default function Hosts() {
                       )}
                     </td>
                     <td className="px-4 py-3 font-semibold" style={{ color: '#0f172a' }}>
-                      {host.full_name}
+                      <div className="flex items-center gap-2">
+                        <span>{host.full_name}</span>
+                        {host.is_blocked && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-rose-100 text-rose-700">
+                            ⛔ Blocked
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3" style={{ color: '#3F5885' }}>
                       {host.designation || '-'}
@@ -417,49 +602,16 @@ export default function Hosts() {
                       {host.email}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex flex-col gap-1">
-                        {host.is_blocked ? (
-                          <span className="text-xs px-2.5 py-1 rounded-full font-bold bg-rose-100 text-rose-700 w-fit flex items-center gap-1">
-                            ⛔ Blocked
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() => toggleAvailability(host.id, toggleState)}
-                            className="text-xs px-2.5 py-1 rounded-full font-semibold transition-all w-fit"
-                            style={{
-                              backgroundColor: isAvailableEffective
-                                ? '#dcfce7'
-                                : isDateOffToday
-                                ? '#fef3c7'
-                                : '#fee2e2',
-                              color: isAvailableEffective
-                                ? '#15803d'
-                                : isDateOffToday
-                                ? '#b45309'
-                                : '#dc2626',
-                            }}
-                          >
-                            {isAvailableEffective
-                              ? '🟢 Available'
-                              : isDateOffToday
-                              ? '📅 On Leave Today'
-                              : '🔴 Toggle Off'}
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
                       <button
-                        onClick={() => openCalendarModal(host)}
-                        className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg border font-medium transition-all"
-                        style={{
-                          borderColor: dates.length > 0 ? '#b45309' : '#021767',
-                          backgroundColor: dates.length > 0 ? '#fffbeb' : '#ffffff',
-                          color: dates.length > 0 ? '#b45309' : '#3F5885',
-                        }}
+                        type="button"
+                        onClick={() => openAvailabilityModal(host)}
+                        className="group inline-flex items-center gap-2 px-2.5 py-1.5 rounded-xl border border-slate-200 hover:border-[#035352] bg-white hover:bg-[#035352]/5 transition-all cursor-pointer shadow-xs"
+                        title="Click to configure availability & hours"
                       >
-                        <CalendarIcon className="h-3.5 w-3.5" />
-                        {dates.length > 0 ? `${dates.length} Off Date(s)` : 'Manage Leave'}
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${liveAvail.dotClass}`} />
+                        <span className="text-xs font-bold text-slate-800 group-hover:text-[#035352]">
+                          {liveAvail.label}
+                        </span>
                       </button>
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -557,6 +709,13 @@ export default function Hosts() {
                 <X className="h-5 w-5" />
               </button>
             </div>
+
+            {modalError && (
+              <div className="mb-4 p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold flex items-start gap-2.5 animate-in fade-in duration-200">
+                <div className="w-2 h-2 rounded-full bg-rose-500 mt-1.5 shrink-0" />
+                <span className="leading-relaxed">{modalError}</span>
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Profile Picture Upload */}
@@ -666,21 +825,6 @@ export default function Hosts() {
                 )}
               </div>
 
-              <div>
-                <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl bg-slate-50 border border-slate-200">
-                  <input
-                    type="checkbox"
-                    name="is_available"
-                    checked={formData.is_available}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, is_available: e.target.checked }))}
-                    className="w-4 h-4 rounded text-[#035352] focus:ring-[#035352]"
-                  />
-                  <span className="text-xs font-bold text-slate-700">
-                    Host Currently Available (Active Status)
-                  </span>
-                </label>
-              </div>
-
               {editingHost && (
                 <div>
                   <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl bg-rose-50/60 border border-rose-200">
@@ -724,148 +868,498 @@ export default function Hosts() {
         </div>
       )}
 
-      {/* Interactive Host Leave Calendar Modal */}
+      {/* Minimal Host Availability Modal */}
       {showCalendarModal && calendarHost && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 sm:p-8 max-h-[95vh] overflow-y-auto border border-slate-200 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-[#035352]/10 text-[#035352] flex items-center justify-center font-bold">
-                  <Calendar className="w-4 h-4" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-[#172525]">
-                    Manage Leave Calendar
-                  </h2>
-                  <p className="text-xs font-semibold text-slate-500">
-                    Host: {calendarHost.full_name} ({calendarHost.designation || 'Staff'})
-                  </p>
-                </div>
+          <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 sm:p-7 border border-slate-200 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 mb-5">
+              <div>
+                <h2 className="text-base font-bold text-[#172525]">Availability & Working Hours</h2>
+                <p className="text-xs font-medium text-slate-500 mt-0.5">
+                  {calendarHost.full_name} • {calendarHost.designation || 'Staff'}
+                </p>
               </div>
-              <button onClick={closeCalendarModal} className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all">
+              <button
+                type="button"
+                onClick={closeAvailabilityModal}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all cursor-pointer"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <p className="text-xs mb-4 font-semibold text-slate-600 leading-relaxed">
-              Click any date to mark it as <strong className="text-rose-600">Unavailable / On Leave</strong>. Dates marked in red will mark the host as unavailable on the Visitor App.
-            </p>
+            <div className="space-y-5">
+              {/* 1. Working Days of Week */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                  Working Days
+                </label>
+                <div className="grid grid-cols-7 gap-1.5">
+                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => {
+                    const active = workingDays.includes(day);
+                    return (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() => toggleWorkingDay(day)}
+                        className={`py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${active
+                            ? 'bg-[#035352] text-white border-[#035352] shadow-xs'
+                            : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100 hover:text-slate-700'
+                          }`}
+                      >
+                        {day}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-            {/* Month Navigation */}
-            <div className="flex items-center justify-between mb-4 bg-slate-50 p-3 rounded-2xl border border-slate-200">
-              <button
-                onClick={() => setCurrentMonthDate(new Date(year, month - 1, 1))}
-                className="p-1.5 rounded-xl hover:bg-slate-200 text-slate-700 transition-all"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-              <h3 className="font-bold text-sm text-[#172525]">
-                {monthName} {year}
-              </h3>
-              <button
-                onClick={() => setCurrentMonthDate(new Date(year, month + 1, 1))}
-                className="p-1.5 rounded-xl hover:bg-slate-200 text-slate-700 transition-all"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </button>
-            </div>
+              {/* 2. Standard Hours (Work & Lunch) */}
+              <div className="grid grid-cols-2 gap-3 p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Working Hours
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="time"
+                      value={workStartTime}
+                      onChange={(e) => setWorkStartTime(e.target.value)}
+                      className="w-full px-2 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold outline-none focus:border-[#035352]"
+                    />
+                    <span className="text-xs text-slate-400 font-bold">-</span>
+                    <input
+                      type="time"
+                      value={workEndTime}
+                      onChange={(e) => setWorkEndTime(e.target.value)}
+                      className="w-full px-2 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold outline-none focus:border-[#035352]"
+                    />
+                  </div>
+                </div>
 
-            {/* Days Header */}
-            <div className="grid grid-cols-7 gap-1 text-center font-bold text-xs mb-2 text-slate-500">
-              <div>Sun</div>
-              <div>Mon</div>
-              <div>Tue</div>
-              <div>Wed</div>
-              <div>Thu</div>
-              <div>Fri</div>
-              <div>Sat</div>
-            </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Lunch Break
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="time"
+                      value={lunchStartTime}
+                      onChange={(e) => setLunchStartTime(e.target.value)}
+                      className="w-full px-2 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold outline-none focus:border-[#035352]"
+                    />
+                    <span className="text-xs text-slate-400 font-bold">-</span>
+                    <input
+                      type="time"
+                      value={lunchEndTime}
+                      onChange={(e) => setLunchEndTime(e.target.value)}
+                      className="w-full px-2 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold outline-none focus:border-[#035352]"
+                    />
+                  </div>
+                </div>
+              </div>
 
-            {/* Days Grid */}
-            <div className="grid grid-cols-7 gap-1.5 text-center mb-6">
-              {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-                <div key={`empty-${i}`} className="p-2.5"></div>
-              ))}
-              {Array.from({ length: daysInMonth }).map((_, i) => {
-                const dayNum = i + 1;
-                const dateStr = formatDateStr(year, month, dayNum);
-                const isSelected = selectedDates.includes(dateStr);
-                const isToday = dateStr === todayStr;
-
-                return (
-                  <button
-                    key={dateStr}
-                    type="button"
-                    onClick={() => toggleDateSelection(dateStr)}
-                    className={`p-2.5 rounded-xl text-xs font-bold flex flex-col items-center justify-center transition-all border ${
-                      isSelected
-                        ? 'bg-rose-50 border-rose-500 text-rose-700 shadow-sm shadow-rose-200'
-                        : isToday
-                        ? 'bg-[#035352]/10 border-[#035352] text-[#035352]'
-                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                    }`}
-                  >
-                    <span>{dayNum}</span>
-                    <span className="text-[9px] font-semibold leading-tight mt-0.5">
-                      {isSelected ? 'Off' : isToday ? 'Today' : ''}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Selected Dates Summary */}
-            <div className="mb-6 p-4 rounded-2xl border border-slate-200 bg-slate-50">
-              <h4 className="text-xs font-bold text-[#172525] mb-2 uppercase tracking-wider">
-                Selected Off Dates ({selectedDates.length})
-              </h4>
-              {selectedDates.length === 0 ? (
-                <p className="text-xs text-slate-500 italic">No unavailable dates selected for this host.</p>
-              ) : (
-                <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
-                  {selectedDates.sort().map((d) => (
-                    <span
-                      key={d}
-                      className="text-[11px] px-2.5 py-1 rounded-lg bg-rose-100 text-rose-700 font-bold flex items-center gap-1.5 border border-rose-200"
-                    >
-                      {d}
+              {/* 3. Date Overrides & Leaves */}
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      Leaves & Specific Date Overrides
+                    </label>
+                    {(selectedDates.length > 0 || Object.keys(dateOverrides).length > 0) && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                        {selectedDates.length + Object.keys(dateOverrides).length}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {(selectedDates.length > 0 || Object.keys(dateOverrides).length > 0) && (
                       <button
                         type="button"
-                        onClick={() => toggleDateSelection(d)}
-                        className="hover:text-rose-900 font-black text-xs"
+                        onClick={handleClearAllOverrides}
+                        className="text-[11px] text-rose-600 hover:text-rose-700 font-semibold cursor-pointer"
                       >
-                        ×
+                        Clear All
                       </button>
-                    </span>
-                  ))}
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!showAddOverride && !overrideDate) {
+                          setOverrideDate(todayStr);
+                        }
+                        setShowAddOverride(!showAddOverride);
+                      }}
+                      className="text-xs font-bold text-[#035352] hover:underline cursor-pointer"
+                    >
+                      {showAddOverride ? 'Cancel' : '+ Add Exception'}
+                    </button>
+                  </div>
                 </div>
-              )}
+
+                {/* Inline Add Exception Form (Supports Single Date, Date Range, & Multi-Pick!) */}
+                {showAddOverride && (
+                  <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3 animate-in fade-in duration-150">
+                    {/* Mode Toggle: Range vs Multi-Select */}
+                    <div className="flex p-0.5 bg-slate-200/70 rounded-xl">
+                      <button
+                        type="button"
+                        onClick={() => setOverrideMode('range')}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${overrideMode === 'range'
+                            ? 'bg-white text-[#035352] shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                      >
+                        📅 Date Range (or Single Date)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setOverrideMode('multi')}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${overrideMode === 'multi'
+                            ? 'bg-white text-[#035352] shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                      >
+                        🗓️ Pick Multiple Dates
+                      </button>
+                    </div>
+
+                    {/* Mode 1: Date Range */}
+                    {overrideMode === 'range' && (
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+                              From Date *
+                            </label>
+                            <input
+                              type="date"
+                              min={todayStr}
+                              value={overrideDate}
+                              onChange={(e) => setOverrideDate(e.target.value)}
+                              className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold outline-none focus:border-[#035352]"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+                              To Date (Optional)
+                            </label>
+                            <input
+                              type="date"
+                              min={overrideDate || todayStr}
+                              value={overrideEndDate}
+                              onChange={(e) => setOverrideEndDate(e.target.value)}
+                              className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold outline-none focus:border-[#035352]"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Quick presets for range */}
+                        {overrideDate && (
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[10px] font-semibold text-slate-400">Quick Range:</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const d = new Date(overrideDate + 'T00:00:00');
+                                d.setDate(d.getDate() + 1);
+                                setOverrideEndDate(d.toISOString().split('T')[0]);
+                              }}
+                              className="px-2 py-0.5 rounded text-[10px] font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 cursor-pointer"
+                            >
+                              +2 Days
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const d = new Date(overrideDate + 'T00:00:00');
+                                d.setDate(d.getDate() + 4);
+                                setOverrideEndDate(d.toISOString().split('T')[0]);
+                              }}
+                              className="px-2 py-0.5 rounded text-[10px] font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 cursor-pointer"
+                            >
+                              +5 Days (Work Week)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const d = new Date(overrideDate + 'T00:00:00');
+                                d.setDate(d.getDate() + 6);
+                                setOverrideEndDate(d.toISOString().split('T')[0]);
+                              }}
+                              className="px-2 py-0.5 rounded text-[10px] font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 cursor-pointer"
+                            >
+                              +1 Week
+                            </button>
+                            {overrideEndDate && (
+                              <button
+                                type="button"
+                                onClick={() => setOverrideEndDate('')}
+                                className="px-1.5 py-0.5 rounded text-[10px] font-bold text-rose-600 hover:bg-rose-50 cursor-pointer"
+                              >
+                                Reset To 1 Day
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Mode 2: Pick Multiple Specific Dates */}
+                    {overrideMode === 'multi' && (
+                      <div className="p-2.5 bg-white rounded-xl border border-slate-200 space-y-2">
+                        {/* Mini Month Nav */}
+                        <div className="flex items-center justify-between text-xs font-bold text-slate-700 px-1">
+                          <span>
+                            {multiMonthDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              disabled={
+                                multiMonthDate.getFullYear() < now.getFullYear() ||
+                                (multiMonthDate.getFullYear() === now.getFullYear() && multiMonthDate.getMonth() <= now.getMonth())
+                              }
+                              onClick={() =>
+                                setMultiMonthDate(
+                                  new Date(multiMonthDate.getFullYear(), multiMonthDate.getMonth() - 1, 1)
+                                )
+                              }
+                              className="p-1 rounded hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                            >
+                              <ChevronLeft className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setMultiMonthDate(
+                                  new Date(multiMonthDate.getFullYear(), multiMonthDate.getMonth() + 1, 1)
+                                )
+                              }
+                              className="p-1 rounded hover:bg-slate-100 cursor-pointer"
+                            >
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Mini Month Grid */}
+                        <div className="grid grid-cols-7 gap-1 text-center">
+                          {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d) => (
+                            <div key={d} className="text-[10px] font-bold text-slate-400">
+                              {d}
+                            </div>
+                          ))}
+                          {Array.from({
+                            length: new Date(
+                              multiMonthDate.getFullYear(),
+                              multiMonthDate.getMonth(),
+                              1
+                            ).getDay(),
+                          }).map((_, i) => (
+                            <div key={`empty-${i}`} className="h-6" />
+                          ))}
+                          {Array.from({
+                            length: new Date(
+                              multiMonthDate.getFullYear(),
+                              multiMonthDate.getMonth() + 1,
+                              0
+                            ).getDate(),
+                          }).map((_, i) => {
+                            const dayNum = i + 1;
+                            const y = multiMonthDate.getFullYear();
+                            const m = String(multiMonthDate.getMonth() + 1).padStart(2, '0');
+                            const d = String(dayNum).padStart(2, '0');
+                            const dStr = `${y}-${m}-${d}`;
+                            const isPast = dStr < todayStr;
+                            const isSelected = multiDates.includes(dStr);
+
+                            return (
+                              <button
+                                key={dStr}
+                                type="button"
+                                disabled={isPast}
+                                onClick={() => toggleMultiDate(dStr)}
+                                className={`h-6 rounded-md text-[11px] font-bold transition-all cursor-pointer flex items-center justify-center ${isSelected
+                                    ? 'bg-[#035352] text-white shadow-xs'
+                                    : isPast
+                                      ? 'text-slate-300 cursor-not-allowed'
+                                      : 'text-slate-700 hover:bg-slate-100'
+                                  }`}
+                              >
+                                {dayNum}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {multiDates.length > 0 && (
+                          <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-100">
+                            <span className="font-bold text-[#035352]">
+                              {multiDates.length} date{multiDates.length > 1 ? 's' : ''} selected
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setMultiDates([])}
+                              className="text-slate-400 hover:text-rose-600 font-semibold cursor-pointer"
+                            >
+                              Clear selection
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Status on Date */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+                        Status on Selected Dates
+                      </label>
+                      <select
+                        value={overrideType}
+                        onChange={(e) => setOverrideType(e.target.value as 'off' | 'custom')}
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold outline-none focus:border-[#035352]"
+                      >
+                        <option value="off">🔴 Full Day Leave (Off)</option>
+                        <option value="custom">🔵 Custom Hours</option>
+                      </select>
+                    </div>
+
+                    {/* Custom Hours (if custom) */}
+                    {overrideType === 'custom' && (
+                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200">
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 mb-1">Work Hours</label>
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="time"
+                              value={overrideWorkIn}
+                              onChange={(e) => setOverrideWorkIn(e.target.value)}
+                              className="w-full p-1 text-xs font-bold bg-white border border-slate-300 rounded"
+                            />
+                            <span>-</span>
+                            <input
+                              type="time"
+                              value={overrideWorkOut}
+                              onChange={(e) => setOverrideWorkOut(e.target.value)}
+                              className="w-full p-1 text-xs font-bold bg-white border border-slate-300 rounded"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 mb-1">Lunch Hours</label>
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="time"
+                              value={overrideLunchIn}
+                              onChange={(e) => setOverrideLunchIn(e.target.value)}
+                              className="w-full p-1 text-xs font-bold bg-white border border-slate-300 rounded"
+                            />
+                            <span>-</span>
+                            <input
+                              type="time"
+                              value={overrideLunchOut}
+                              onChange={(e) => setOverrideLunchOut(e.target.value)}
+                              className="w-full p-1 text-xs font-bold bg-white border border-slate-300 rounded"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Submit Button */}
+                    <button
+                      type="button"
+                      onClick={handleAddOverride}
+                      disabled={
+                        overrideMode === 'range'
+                          ? !overrideDate
+                          : multiDates.length === 0
+                      }
+                      className="w-full py-2 bg-[#035352] text-white rounded-xl text-xs font-bold hover:bg-[#023e3d] transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+                    >
+                      {overrideMode === 'range'
+                        ? overrideEndDate && overrideEndDate > overrideDate
+                          ? `Apply for ${getDatesInRange(overrideDate, overrideEndDate).length} Dates (${overrideDate} to ${overrideEndDate})`
+                          : `Apply for ${overrideDate || 'Date'}`
+                        : `Apply for ${multiDates.length} Selected Date${multiDates.length > 1 ? 's' : ''}`}
+                    </button>
+                  </div>
+                )}
+
+                {/* Active Overrides Chips */}
+                {selectedDates.length === 0 && Object.keys(dateOverrides).length === 0 ? (
+                  <p className="text-xs text-slate-400 italic py-1">
+                    No exceptions added. Regular weekly schedule applies year-round.
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto pt-1">
+                    {/* Full Leaves */}
+                    {selectedDates.sort().map((d) => (
+                      <span
+                        key={d}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200"
+                      >
+                        <span>📅 {d} (Leave)</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveOverride(d)}
+                          className="hover:text-rose-900 font-black cursor-pointer text-sm"
+                          title="Remove leave"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                    {/* Custom Hours */}
+                    {Object.keys(dateOverrides).sort().map((d) => {
+                      const o = dateOverrides[d];
+                      const inT = o.available_from?.slice(0, 5) || '09:00';
+                      const outT = o.available_to?.slice(0, 5) || '18:00';
+                      return (
+                        <span
+                          key={d}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200"
+                        >
+                          <span>🕒 {d} ({inT}-{outT})</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveOverride(d)}
+                            className="hover:text-indigo-900 font-black cursor-pointer text-sm"
+                            title="Remove override"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="flex gap-3">
-              {selectedDates.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setSelectedDates([])}
-                  className="px-3.5 py-2.5 rounded-xl text-xs font-bold border border-slate-300 text-slate-600 hover:bg-slate-100 transition-all shadow-sm"
-                >
-                  Clear All
-                </button>
-              )}
+
+
+
+
+            {/* Modal Footer Actions */}
+            <div className="flex gap-2.5 pt-5 mt-5 border-t border-slate-100">
               <button
                 type="button"
-                onClick={closeCalendarModal}
-                className="flex-1 py-2.5 rounded-xl font-bold text-xs border border-slate-300 text-slate-700 hover:bg-slate-50 transition-all shadow-sm"
+                onClick={closeAvailabilityModal}
+                className="flex-1 py-2.5 rounded-xl font-bold text-xs border border-slate-300 text-slate-700 hover:bg-slate-50 transition-all shadow-sm cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="button"
-                onClick={handleSaveCalendar}
+                onClick={handleSaveAvailability}
                 disabled={calendarSubmitting}
-                className="flex-1 py-2.5 rounded-xl font-bold text-xs text-white bg-[#035352] hover:bg-[#023e3d] shadow-md shadow-[#035352]/20 transition-all disabled:opacity-50"
+                className="flex-1 py-2.5 rounded-xl font-bold text-xs text-white bg-[#035352] hover:bg-[#023e3d] shadow-md shadow-[#035352]/20 transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5"
               >
-                {calendarSubmitting ? 'Saving...' : 'Save Leave Calendar'}
+                <Check className="w-4 h-4" />
+                <span>{calendarSubmitting ? 'Saving...' : 'Save Availability'}</span>
               </button>
             </div>
           </div>

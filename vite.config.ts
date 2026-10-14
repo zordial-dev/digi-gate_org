@@ -19,26 +19,27 @@ export default defineConfig({
       '/public': {
         target: 'http://localhost:5000',
         changeOrigin: true,
+        bypass: (req) => (req.headers.accept?.includes('text/html') ? '/index.html' : null),
       },
       '/selfies': {
         target: 'http://localhost:5000',
         changeOrigin: true,
+        bypass: (req) => (req.headers.accept?.includes('text/html') ? '/index.html' : null),
       },
       '/logos': {
         target: 'http://localhost:5000',
         changeOrigin: true,
-      },
-      '/hosts': {
-        target: 'http://localhost:5000',
-        changeOrigin: true,
+        bypass: (req) => (req.headers.accept?.includes('text/html') ? '/index.html' : null),
       },
       '/profiles': {
         target: 'http://localhost:5000',
         changeOrigin: true,
+        bypass: (req) => (req.headers.accept?.includes('text/html') ? '/index.html' : null),
       },
       '/uploads': {
         target: 'http://localhost:5000',
         changeOrigin: true,
+        bypass: (req) => (req.headers.accept?.includes('text/html') ? '/index.html' : null),
       },
     },
   },

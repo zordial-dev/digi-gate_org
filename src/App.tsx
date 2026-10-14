@@ -13,6 +13,8 @@ import ManageAdmins from '@/pages/ManageAdmins';
 import Settings from '@/pages/Settings';
 import Login from '@/pages/Login';
 import ForgotPassword from '@/pages/ForgotPassword';
+import HostAvailability from '@/pages/HostAvailability';
+import Invitations from '@/pages/Invitations';
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -25,7 +27,15 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 function NonHostRoute({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   if (user?.role === 'host' || user?.org_user_role === 'host') {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/availability" replace />;
+  }
+  return <>{children}</>;
+}
+
+function HostRoute({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  if (user?.role !== 'host' && user?.org_user_role !== 'host') {
+    return <Navigate to="/hosts" replace />;
   }
   return <>{children}</>;
 }
@@ -53,8 +63,17 @@ function App() {
                       <main className="p-6">
                         <Routes>
                           <Route path="/" element={<Dashboard />} />
+                          <Route
+                            path="/availability"
+                            element={
+                              <HostRoute>
+                                <HostAvailability />
+                              </HostRoute>
+                            }
+                          />
                           <Route path="/visitors" element={<Visitors />} />
                           <Route path="/visits" element={<Visits />} />
+                          <Route path="/invitations" element={<Invitations />} />
                           <Route
                             path="/hosts"
                             element={

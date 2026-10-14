@@ -16,10 +16,7 @@
       "source": "/logos/(.*)",
       "destination": "https://digi-gate-backend.onrender.com/logos/$1"
     },
-    {
-      "source": "/hosts/(.*)",
-      "destination": "https://digi-gate-backend.onrender.com/hosts/$1"
-    },
+
     {
       "source": "/profiles/(.*)",
       "destination": "https://digi-gate-backend.onrender.com/profiles/$1"
