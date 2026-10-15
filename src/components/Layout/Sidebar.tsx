@@ -7,7 +7,9 @@ import {
   Settings,
   Building2,
   LogOut,
-  ShieldCheck
+  ShieldCheck,
+  CalendarClock,
+  Send
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -15,6 +17,7 @@ const baseNavItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/visitors', label: 'Visitors', icon: Users },
   { path: '/visits', label: 'Visits', icon: ClipboardList },
+  { path: '/invitations', label: 'Invitations', icon: Send },
   { path: '/hosts', label: 'Hosts', icon: UserCog },
   { path: '/settings', label: 'Settings', icon: Settings },
 ];
@@ -30,15 +33,17 @@ export default function Sidebar() {
   let navItems = baseNavItems;
   if (isHost) {
     navItems = [
+      { path: '/availability', label: 'Availability', icon: CalendarClock },
+      { path: '/invitations', label: 'Invitations', icon: Send },
       { path: '/', label: 'Dashboard', icon: LayoutDashboard },
       { path: '/visitors', label: 'Visitors', icon: Users },
       { path: '/visits', label: 'Visits', icon: ClipboardList },
     ];
   } else if (!isSubAdmin) {
     navItems = [
-      ...baseNavItems.slice(0, 4),
+      ...baseNavItems.slice(0, 5),
       { path: '/admins', label: 'Manage Admins', icon: ShieldCheck },
-      ...baseNavItems.slice(4),
+      ...baseNavItems.slice(5),
     ];
   }
 

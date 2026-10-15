@@ -1,3 +1,8 @@
+export interface Holiday {
+  date: string;
+  title: string;
+}
+
 export interface Organisation {
   id: number;
   name: string;
@@ -17,6 +22,10 @@ export interface Organisation {
   updated_at?: string;
   host_available_message: string;
   host_unavailable_message: string;
+  working_days?: string[];
+  opening_time?: string;
+  closing_time?: string;
+  holidays?: Holiday[];
 }
 
 export interface Host {
@@ -32,6 +41,24 @@ export interface Host {
   is_available_toggle?: boolean;
   is_date_unavailable?: boolean;
   unavailable_dates?: string[];
+  available_from?: string;
+  available_to?: string;
+  lunch_from?: string;
+  lunch_to?: string;
+  working_days?: string[];
+  date_overrides?: Record<string, {
+    type?: 'off' | 'custom';
+    available_from?: string;
+    available_to?: string;
+    lunch_from?: string;
+    lunch_to?: string;
+    note?: string;
+  }>;
+  is_lunch?: boolean;
+  is_on_leave?: boolean;
+  is_off_duty?: boolean;
+  availability_status?: string;
+  status_label?: string;
   is_active: boolean;
   is_blocked?: boolean;
   password?: string;
@@ -114,4 +141,38 @@ export interface OrganisationUserItem {
   email: string;
   role: 'super_admin' | 'admin' | 'sub_admin';
   is_active: boolean;
+}
+
+export interface Invitation {
+  id: number;
+  invitation_code: string;
+  organisation_id: number;
+  host_id: number;
+  visitor_name: string;
+  mobile_number: string;
+  purpose_of_visit: string;
+  valid_date: string;
+  valid_until: string;
+  additional_notes?: string | null;
+  status: 'active' | 'used' | 'expired' | 'cancelled';
+  used_at?: string | null;
+  visit_id?: number | null;
+  created_at: string;
+  updated_at: string;
+  host?: {
+    id: number;
+    full_name: string;
+    department?: string;
+    designation?: string;
+    profile_pic?: string;
+  };
+  organisation?: {
+    id: number;
+    name: string;
+  };
+  visit?: {
+    id: number;
+    check_in_time?: string;
+    selfie_url?: string;
+  };
 }
