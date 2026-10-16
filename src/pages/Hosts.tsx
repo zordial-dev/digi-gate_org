@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
-  Plus, Edit2, Trash2, X, Upload, User, Calendar, Calendar as CalendarIcon,
-  ChevronLeft, ChevronRight, KeyRound, ShieldCheck, Eye, EyeOff, Ban, Copy, Check, Sparkles,
-  Clock, Coffee, Sun, CalendarDays
+  Plus, Edit2, Trash2, X, Upload, User,
+  ChevronLeft, ChevronRight, KeyRound, ShieldCheck, Eye, EyeOff, Ban, Copy, Check, Sparkles
 } from 'lucide-react';
 import { hostApi } from '@/api/services';
 import type { Host } from '@/types';

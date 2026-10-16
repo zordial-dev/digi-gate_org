@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
-  Clock, Coffee, Sun, CalendarDays, Check, Plus, Trash2, 
-  User, ShieldCheck, ChevronLeft, ChevronRight, Save, Calendar 
+  Clock, Coffee, Sun, CalendarDays, Plus, Trash2, 
+  User, ChevronLeft, ChevronRight, Save, Calendar 
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { hostApi } from '@/api/services';
