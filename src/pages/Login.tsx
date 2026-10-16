@@ -101,7 +101,7 @@ export const Login: React.FC = () => {
       }
 
       showToast('Welcome Back', 'Logged in as Host successfully!', 'success');
-      navigate('/');
+      navigate('/availability');
     } catch (err: any) {
       const msg = err.response?.data?.error || err.message || 'Invalid host credentials.';
       setErrorMessage(msg);
@@ -125,7 +125,7 @@ export const Login: React.FC = () => {
         confirm_password: confirmPassword
       });
       showToast('Password Set Successfully', 'Welcome to your Host Dashboard!', 'success');
-      navigate('/');
+      navigate('/availability');
     } catch (err: any) {
       const msg = err.response?.data?.error || err.message || 'Failed to set new password.';
       setErrorMessage(msg);

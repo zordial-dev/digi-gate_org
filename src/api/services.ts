@@ -6,7 +6,8 @@ import type {
   VisitorVisit, 
   DashboardStats,
   ApiResponse,
-  OrganisationUserItem
+  OrganisationUserItem,
+  Invitation
 } from '@/types';
 
 // ============================================================
@@ -85,6 +86,16 @@ export const hostApi = {
 
   updateUnavailableDates: (id: number, unavailable_dates: string[]) =>
     apiClient.patch<ApiResponse<Host>>(`/hosts/${id}/unavailable-dates`, { unavailable_dates }),
+
+  updateAvailability: (id: number, data: {
+    unavailable_dates?: string[];
+    available_from?: string;
+    available_to?: string;
+    lunch_from?: string;
+    lunch_to?: string;
+    working_days?: string[];
+    date_overrides?: Record<string, any>;
+  }) => apiClient.patch<ApiResponse<Host>>(`/hosts/${id}/availability`, data),
 };
 
 // ============================================================
@@ -208,6 +219,29 @@ export const organisationUserApi = {
 };
 
 // ============================================================
+// Invitations API
+// ============================================================
+export const invitationApi = {
+  getAll: (params?: { organisation_id?: number; host_id?: number; status?: string; search?: string }) =>
+    apiClient.get<ApiResponse<Invitation[]>>('/invitations', { params }),
+
+  create: (data: {
+    organisation_id: number;
+    host_id: number;
+    visitor_name: string;
+    mobile_number: string;
+    purpose_of_visit: string;
+    valid_date?: string;
+    validity_duration?: string;
+    additional_notes?: string;
+  }) =>
+    apiClient.post<ApiResponse<Invitation>>('/invitations', data),
+
+  cancel: (id: number) =>
+    apiClient.patch<ApiResponse<null>>(`/invitations/${id}/cancel`),
+};
+
+// ============================================================
 // Export all APIs
 // ============================================================
 export default {
@@ -218,4 +252,5 @@ export default {
   visitApi,
   dashboardApi,
   reportsApi,
+  invitationApi,
 };
